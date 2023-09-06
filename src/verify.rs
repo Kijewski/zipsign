@@ -56,7 +56,7 @@ pub struct Cli {
     verifying_key: PathBuf,
     /// Signed file
     file: PathBuf,
-    /// Signature file or .zip file generated with "zip-file"
+    /// Signature file or .zip file generated with "zip" command
     signature: PathBuf,
 }
 
