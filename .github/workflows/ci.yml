@@ -12,7 +12,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
@@ -30,7 +30,7 @@ jobs:
           - stable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
@@ -48,7 +48,7 @@ jobs:
           - stable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
@@ -69,7 +69,7 @@ jobs:
           - macos-12
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
@@ -83,7 +83,7 @@ jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
@@ -96,7 +96,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
