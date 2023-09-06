@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0 WITH LLVM-exception"
 [dependencies]
 clap = { version = "4.4.2", features = ["derive"] }
 ed25519-dalek = { version = "2.0.0", features = ["serde", "rand_core"] }
-mmarinus = "0.4.0"
+memmap2 = "0.7.1"
 num-traits = "0.2.16"
 parse_int = { version = "0.6.0", features = ["implicit-octal"] }
 pretty-error-debug = "0.3.0"

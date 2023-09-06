@@ -9,25 +9,30 @@ use rand_core::OsRng;
 pub fn main(args: Cli) -> Result<(), Error> {
     let key: SigningKey = SigningKey::generate(&mut OsRng);
 
-    OpenOptions::new()
+    let result = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(&args.private_key)
-        .map_err(Error::PrivOpen)?
-        .write_all(&key.to_keypair_bytes())
-        .map_err(Error::PrivWrite)?;
+        .open(&args.private_key);
+    let mut f = match result {
+        Ok(f) => f,
+        Err(err) => return Err(Error::Open(err, args.private_key)),
+    };
+    f.write_all(&key.to_keypair_bytes())
+        .map_err(|err| Error::Write(err, args.private_key))?;
+    drop(f);
 
-    OpenOptions::new()
+    let result = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(&args.verifying_key)
-        .map_err(Error::VerifyingOpen)?
-        .write_all(key.verifying_key().as_bytes())
-        .map_err(Error::VerifyingWrite)?;
-
-    Ok(())
+        .open(&args.verifying_key);
+    let mut f = match result {
+        Ok(f) => f,
+        Err(err) => return Err(Error::Open(err, args.verifying_key)),
+    };
+    f.write_all(key.verifying_key().as_bytes())
+        .map_err(|err| Error::Write(err, args.verifying_key))
 }
 
 /// Generate a signing key
@@ -41,12 +46,8 @@ pub struct Cli {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("could not open private key file for writing")]
-    PrivOpen(#[source] std::io::Error),
-    #[error("could not write to private key file")]
-    PrivWrite(#[source] std::io::Error),
-    #[error("could not open verifying key file for writing")]
-    VerifyingOpen(#[source] std::io::Error),
-    #[error("could not write to verifying key file")]
-    VerifyingWrite(#[source] std::io::Error),
+    #[error("could not open {1:?} for writing")]
+    Open(#[source] std::io::Error, PathBuf),
+    #[error("could not write to {1:?}")]
+    Write(#[source] std::io::Error, PathBuf),
 }

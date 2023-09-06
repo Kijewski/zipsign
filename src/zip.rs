@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 use ed25519_dalek::{SignatureError, Signer, SigningKey};
-use mmarinus::{perms, Map, Private};
+use memmap2::Mmap;
 use zip::result::ZipError;
 use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
@@ -18,29 +18,47 @@ pub fn main(args: Cli) -> Result<(), Error> {
         .to_str()
         .ok_or(Error::NoFileName)?;
 
+    // read signing key
     let mut key = [0; 64];
-    OpenOptions::new()
-        .read(true)
-        .open(&args.private_key)
-        .map_err(Error::KeyOpen)?
-        .read_exact(&mut key)
-        .map_err(Error::KeyRead)?;
-    let key = SigningKey::from_keypair_bytes(&key)?;
+    let mut f = match OpenOptions::new().read(true).open(&args.private_key) {
+        Ok(f) => f,
+        Err(err) => return Err(Error::OpenRead(err, args.private_key)),
+    };
+    if let Err(err) = f.read_exact(&mut key) {
+        return Err(Error::Read(err, args.private_key));
+    }
+    let key = SigningKey::from_keypair_bytes(&key)
+        .map_err(|err| Error::KeyValidate(err, args.private_key))?;
+    drop(f);
 
-    let file = Map::load(&args.file, Private, perms::Read)?;
+    // map "file"
+    let f = match OpenOptions::new().read(true).open(&args.file) {
+        Ok(f) => f,
+        Err(err) => return Err(Error::OpenRead(err, args.file)),
+    };
+    let file = match unsafe { Mmap::map(&f) } {
+        Ok(file) => file,
+        Err(err) => return Err(Error::Mmap(err, args.file)),
+    };
+    drop(f);
+
+    // write signature
     let signature = key.try_sign(&file).map_err(Error::FileSign)?;
-
-    let mut zip_file = OpenOptions::new()
+    let result = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(args.zip)
-        .map_err(Error::ZipOpen)?;
-    zip_file
-        .write_all(&signature.to_bytes())
-        .map_err(Error::ZipWrite)?;
-    let mut zip_file = ZipWriter::new(zip_file);
+        .open(&args.zip);
+    let mut zip_file = match result {
+        Ok(zip_file) => zip_file,
+        Err(err) => return Err(Error::OpenWrite(err, args.zip)),
+    };
+    if let Err(err) = zip_file.write_all(&signature.to_bytes()) {
+        return Err(Error::Write(err, args.zip));
+    }
 
+    // write ZIP content
+    let mut zip_file = ZipWriter::new(zip_file);
     let method = match args.method.unwrap_or_default() {
         NamedCompressionMethod::Stored => CompressionMethod::Stored,
         NamedCompressionMethod::Deflated => CompressionMethod::Deflated,
@@ -51,12 +69,15 @@ pub fn main(args: Cli) -> Result<(), Error> {
         .compression_method(method)
         .compression_level(args.level)
         .unix_permissions(args.permissions.unwrap_or_default().0 as u32);
-    zip_file
-        .start_file(name, options)
-        .map_err(Error::ZipAppend)?;
-    zip_file.write_all(&file).map_err(Error::ZipWrite)?;
-    drop(file);
-    zip_file.finish().map_err(Error::ZipFinish)?;
+    if let Err(err) = zip_file.start_file(name, options) {
+        return Err(Error::Zip(err, args.zip));
+    }
+    if let Err(err) = zip_file.write_all(&file) {
+        return Err(Error::Write(err, args.zip));
+    }
+    if let Err(err) = zip_file.finish() {
+        return Err(Error::Zip(err, args.zip));
+    }
 
     Ok(())
 }
@@ -112,22 +133,20 @@ impl FromStr for Permissions {
 pub enum Error {
     #[error("input file has no UTF-8 name")]
     NoFileName,
-    #[error("could not open private key file for reading")]
-    KeyOpen(#[source] std::io::Error),
-    #[error("could not read private key file")]
-    KeyRead(#[source] std::io::Error),
-    #[error("private key was invalid")]
-    KeyValidate(#[from] SignatureError),
-    #[error("could not map file")]
-    FileMap(#[from] mmarinus::Error<()>),
     #[error("could not sign file")]
     FileSign(#[source] SignatureError),
-    #[error("could not open ZIP file for writing")]
-    ZipOpen(#[source] std::io::Error),
-    #[error("could not write to ZIP file")]
-    ZipWrite(#[source] std::io::Error),
-    #[error("could not append new file into ZIP file")]
-    ZipAppend(#[source] ZipError),
-    #[error("could not finish wriging ZIP file")]
-    ZipFinish(#[source] ZipError),
+    #[error("could not open {1:?} for reading")]
+    OpenRead(#[source] std::io::Error, PathBuf),
+    #[error("could not open {1:?} for writing")]
+    OpenWrite(#[source] std::io::Error, PathBuf),
+    #[error("could not read from {1:?}")]
+    Read(#[source] std::io::Error, PathBuf),
+    #[error("could not write to {1:?}")]
+    Write(#[source] std::io::Error, PathBuf),
+    #[error("could not mmap {1:?} for reading")]
+    Mmap(#[source] std::io::Error, PathBuf),
+    #[error("private key {1:?} was invalid")]
+    KeyValidate(#[source] SignatureError, PathBuf),
+    #[error("could not write to ZIP file {1:?}")]
+    Zip(#[source] ZipError, PathBuf),
 }
