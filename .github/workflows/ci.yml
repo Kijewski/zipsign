@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  schedule:
+    - cron: "58 7 * * 4"
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: fmt
+          toolchain: nightly
+          components: rustfmt
+
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: check
+          toolchain: ${{ matrix.toolchain }}
+          components: clippy
+
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  check:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: check
+          toolchain: ${{ matrix.toolchain }}
+
+      - run: cargo check --workspace --all-targets
+
+  test:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+        os:
+          - ubuntu-22.04
+          - windows-2022
+          - macos-12
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: test
+          toolchain: ${{ matrix.toolchain }}
+          components: clippy
+
+      - run: cargo test --workspace --all-targets
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: doc
+          toolchain: stable
+
+      - run: cargo package --package zipsign
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: audit
+          toolchain: stable
+
+      - name: Audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
