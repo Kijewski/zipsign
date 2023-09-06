@@ -46,7 +46,9 @@ pub fn main(args: Cli) -> Result<(), Error> {
     drop(f);
 
     // verify signature
-    key.verify_strict(&file, &sign).map_err(Error::Signature)
+    key.verify_strict(&file, &sign).map_err(Error::Signature)?;
+    println!("OK");
+    Ok(())
 }
 
 /// Verify a signature

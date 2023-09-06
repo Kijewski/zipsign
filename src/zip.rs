@@ -57,6 +57,15 @@ pub fn main(args: Cli) -> Result<(), Error> {
         return Err(Error::Write(err, args.zip));
     }
 
+    // get permissions
+    let permissions = match args.permissions {
+        Some(permissions) => permissions.0 as u32,
+        None => match is_executable::is_executable(&args.file) {
+            true => 0o755,
+            false => 0o644,
+        },
+    };
+
     // write ZIP content
     let mut zip_file = ZipWriter::new(zip_file);
     let method = match args.method.unwrap_or_default() {
@@ -68,7 +77,7 @@ pub fn main(args: Cli) -> Result<(), Error> {
     let options = FileOptions::default()
         .compression_method(method)
         .compression_level(args.level)
-        .unix_permissions(args.permissions.unwrap_or_default().0 as u32);
+        .unix_permissions(permissions);
     if let Err(err) = zip_file.start_file(name, options) {
         return Err(Error::Zip(err, args.zip));
     }
@@ -97,7 +106,7 @@ pub struct Cli {
     /// Compression level
     #[arg(short, long)]
     level: Option<i32>,
-    /// Unix-style permissions (default=0o644)
+    /// Unix-style permissions, default: 0o755 if "FILE" is executable, otherwise 0o644
     #[arg(short, long)]
     permissions: Option<Permissions>,
 }
@@ -114,12 +123,6 @@ enum NamedCompressionMethod {
 
 #[derive(Debug, Clone, Copy)]
 struct Permissions(u16);
-
-impl Default for Permissions {
-    fn default() -> Self {
-        Self(0o644)
-    }
-}
 
 impl FromStr for Permissions {
     type Err = <u16 as num_traits::Num>::FromStrRadixErr;

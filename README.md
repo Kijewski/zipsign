@@ -39,7 +39,7 @@ Options:
 
 * `--method <METHOD>`: Compression method (stored | \*deflated | bzip2 | zstd, \*=default)
 * `--level <LEVEL>`: Compression level
-* `--permissions <PERMISSIONS>`: Unix-style permissions (default=0o644)
+* `--permissions <PERMISSIONS>`: Unix-style permissions, default: 0o755 if "FILE" is executable, otherwise 0o644
 
 ### Generate signature in new file
 
