@@ -1,5 +1,6 @@
 mod generate;
 mod sign;
+mod tar;
 mod verify;
 mod zip;
 
@@ -11,6 +12,7 @@ fn main() -> Result<(), MainError> {
         CliSubcommand::GenKey(args) => generate::main(args)?,
         CliSubcommand::Verify(args) => verify::main(args)?,
         CliSubcommand::Sign(args) => sign::main(args)?,
+        CliSubcommand::Tar(args) => tar::main(args)?,
         CliSubcommand::Zip(args) => zip::main(args)?,
     }
     Ok(())
@@ -30,7 +32,9 @@ enum CliSubcommand {
     GenKey(generate::Cli),
     Verify(verify::Cli),
     Sign(sign::Cli),
+    Tar(tar::Cli),
     Zip(zip::Cli),
+    // TODO: verify .tar file
 }
 
 #[derive(pretty_error_debug::Debug, thiserror::Error)]
@@ -41,6 +45,8 @@ enum MainError {
     Verify(#[from] verify::Error),
     #[error("could not sign file")]
     Sign(#[from] sign::Error),
-    #[error("could not zip file")]
+    #[error("could not create signed .tar file")]
+    Tar(#[from] tar::Error),
+    #[error("could not create signed .zip file")]
     Zip(#[from] zip::Error),
 }
