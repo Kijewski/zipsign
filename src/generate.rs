@@ -18,7 +18,7 @@ trait NotUnixOpenOptionsExt {
 #[cfg(not(unix))]
 impl NotUnixOpenOptionsExt for OpenOptions {}
 
-pub fn main(args: Cli) -> Result<(), Error> {
+pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let key = if args.extract {
         let result = OpenOptions::new().read(true).open(&args.private_key);
         let mut f = match result {
@@ -66,7 +66,7 @@ pub fn main(args: Cli) -> Result<(), Error> {
 
 /// Generate a signing key
 #[derive(Debug, Parser, Clone)]
-pub struct Cli {
+pub(crate) struct Cli {
     /// Private key file to create
     private_key: PathBuf,
     /// Verifying key (public key) file to create
@@ -77,7 +77,7 @@ pub struct Cli {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub(crate) enum Error {
     #[error("could not open {1:?} for writing")]
     OpenWrite(#[source] std::io::Error, PathBuf),
     #[error("could not open {1:?} for reading")]

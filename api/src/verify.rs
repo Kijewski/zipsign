@@ -1,9 +1,12 @@
+//! Common functions to verify a signed file
+
 use std::io::{copy, Read, Seek, SeekFrom};
 
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use ed25519_dalek::{Digest, Signature, SIGNATURE_LENGTH};
-pub use ed25519_dalek::{Sha512 as Prehash, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH};
+#[doc(no_inline)]
+pub use ed25519_dalek::{Sha512, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH};
 
 use crate::{SignatureCountLeInt, GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER};
 
@@ -15,16 +18,22 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 /// An error that can occur while verifying files
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// No matching (signature, verifying_key) pair was found
     #[error("no matching (signature, verifying_key) pair was found")]
     NoMatch,
+    /// Illegal, unknown or missing header
     #[error("illegal, unknown or missing header")]
     MagicHeader,
+    /// An I/O error occured reading the signed file
     #[error("an I/O error occured reading the signed file")]
     Read(#[source] std::io::Error),
+    /// An I/O error occured seeking inside the signed file
     #[error("an I/O error occured seeking inside the signed file")]
     Seek(#[source] std::io::Error),
+    /// A supplied key verifying key was invalid
     #[error("a supplied key verifying key was invalid (#{0})")]
     IllegalKey(#[source] SignatureError, usize),
+    /// The input contained an illegal signature
     #[error("the input contained an illegal signature (#{0})")]
     IllegalSignature(#[source] SignatureError, usize),
 }
@@ -64,7 +73,7 @@ pub fn collect_keys(keys: &[[u8; 32]]) -> Result<Vec<VerifyingKey>, Error> {
 pub fn find_match(
     keys: &[VerifyingKey],
     signatures: &[Signature],
-    prehashed_message: &Prehash,
+    prehashed_message: &Sha512,
     context: Option<&[u8]>,
 ) -> Result<usize> {
     for (idx, key) in keys.iter().enumerate() {
@@ -81,7 +90,7 @@ pub fn find_match(
 }
 
 /// Hash the content of a signed .tar.gz file, and collect all contained signatures
-pub fn read_tar<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Prehash, Vec<Signature>)> {
+pub fn read_tar<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Sha512, Vec<Signature>)> {
     // seek to start of base64 encoded signatures
     let mut tail = [0; u64::BITS as usize / 4 + GZIP_END.len()];
     let data_end = signed_file
@@ -111,7 +120,7 @@ pub fn read_tar<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Prehash
         return Err(Error::MagicHeader);
     }
 
-    signed_file
+    let _: u64 = signed_file
         .seek(SeekFrom::Start(gzip_start))
         .map_err(Error::Seek)?;
 
@@ -148,7 +157,7 @@ pub fn read_tar<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Prehash
 }
 
 /// Hash the content of a signed .zip file, and collect all contained signatures
-pub fn read_zip<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Prehash, Vec<Signature>)> {
+pub fn read_zip<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Sha512, Vec<Signature>)> {
     let signatures = read_signatures(signed_file)?;
     let prehashed_message = prehash(signed_file)?;
     Ok((prehashed_message, signatures))
@@ -186,8 +195,8 @@ pub fn read_signatures<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<V
 }
 
 /// Calculate the hash of an input file
-pub fn prehash<R: ?Sized + Read>(file: &mut R) -> Result<Prehash> {
-    let mut prehashed_message = Prehash::new();
-    copy(file, &mut prehashed_message).map_err(Error::Read)?;
+pub fn prehash<R: ?Sized + Read>(file: &mut R) -> Result<Sha512> {
+    let mut prehashed_message = Sha512::new();
+    let _: u64 = copy(file, &mut prehashed_message).map_err(Error::Read)?;
     Ok(prehashed_message)
 }

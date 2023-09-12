@@ -8,7 +8,7 @@ use zipsign_api::verify::{
     SignatureError, PUBLIC_KEY_LENGTH,
 };
 
-pub fn main(args: Cli) -> Result<(), Error> {
+pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let (kind, input, mut args) = args.subcommand.split();
 
     let mut input_file = match File::open(&input) {
@@ -90,7 +90,7 @@ pub fn main(args: Cli) -> Result<(), Error> {
 
 /// Verify a signature
 #[derive(Debug, Parser, Clone)]
-pub struct Cli {
+pub(crate) struct Cli {
     #[command(subcommand)]
     subcommand: CliKind,
 }
@@ -159,7 +159,7 @@ struct CommonArgs {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub(crate) enum Error {
     #[error("no matching (signature, verifying_key) pair was found")]
     NoMatch,
     #[error("could not open {1:?} for reading")]

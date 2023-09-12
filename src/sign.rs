@@ -12,7 +12,7 @@ use zipsign_api::{
     SignatureCountLeInt, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE, MAGIC_HEADER,
 };
 
-pub fn main(args: Cli) -> Result<(), Error> {
+pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let (kind, args) = args.subcommand.split();
 
     if args.keys.len() > SignatureCountLeInt::MAX as usize {
@@ -185,7 +185,7 @@ pub fn main(args: Cli) -> Result<(), Error> {
 
 /// Generate signature for a file
 #[derive(Debug, Parser, Clone)]
-pub struct Cli {
+pub(crate) struct Cli {
     #[command(subcommand)]
     subcommand: CliKind,
 }
@@ -235,7 +235,7 @@ struct CommonArgs {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub(crate) enum Error {
     #[error("could not open {1:?} for reading")]
     OpenRead(#[source] std::io::Error, PathBuf),
     #[error("could not open {1:?} for writing")]
