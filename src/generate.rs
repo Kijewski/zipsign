@@ -1,10 +1,22 @@
 use std::fs::OpenOptions;
 use std::io::Write;
+#[cfg(unix)]
+use std::os::unix::prelude::OpenOptionsExt;
 use std::path::PathBuf;
 
 use clap::Parser;
 use ed25519_dalek::SigningKey;
 use rand_core::OsRng;
+
+trait NotUnixOpenOptionsExt {
+    #[inline(always)]
+    fn mode(&mut self, _mode: u32) -> &mut Self {
+        self
+    }
+}
+
+#[cfg(not(unix))]
+impl NotUnixOpenOptionsExt for OpenOptions {}
 
 pub fn main(args: Cli) -> Result<(), Error> {
     let key: SigningKey = SigningKey::generate(&mut OsRng);
@@ -13,6 +25,7 @@ pub fn main(args: Cli) -> Result<(), Error> {
         .write(true)
         .create(true)
         .truncate(true)
+        .mode(0o400)
         .open(&args.private_key);
     let mut f = match result {
         Ok(f) => f,
@@ -26,6 +39,7 @@ pub fn main(args: Cli) -> Result<(), Error> {
         .write(true)
         .create(true)
         .truncate(true)
+        .mode(0o444)
         .open(&args.verifying_key);
     let mut f = match result {
         Ok(f) => f,

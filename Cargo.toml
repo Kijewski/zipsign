@@ -7,17 +7,9 @@ authors = ["René Kijewski <crates.io@k6i.de>"]
 license = "MIT OR Apache-2.0 WITH LLVM-exception"
 
 [dependencies]
-bzip2 = "0.4.4"
 clap = { version = "4.4.2", features = ["derive"] }
-ed25519-dalek = { version = "2.0.0", features = ["rand_core"] }
-flate2 = "1.0.27"
-is_executable = "1.0.1"
-memmap2 = "0.7.1"
-num-traits = "0.2.16"
-parse_int = { version = "0.6.0", features = ["implicit-octal"] }
+ed25519-dalek = { version = "2.0.0", features = ["digest", "rand_core", "zeroize"] }
 pretty-error-debug = "0.3.0"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
-strum = { version = "0.25.0", features = ["derive"] }
 thiserror = "1.0.48"
-xz2 = { version = "0.1.7", features = ["static"] }
-zip = { version = "0.6.6", features = ["bzip2", "deflate", "zstd"] }
+zip = { version = "0.6.6", default-features = false }

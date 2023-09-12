@@ -1,10 +1,15 @@
 mod generate;
 mod sign;
-mod tar;
 mod verify;
-mod zip;
 
 use clap::{Parser, Subcommand};
+
+// "\x0c\x04\x01" -- form feed, end of text, start of header
+// "ed25519ph" -- used algorithm
+// "\x00\x00" -- version number in network byte order
+const MAGIC_HEADER: &[u8; 14] = b"\x0c\x04\x01ed25519ph\x00\x00";
+const HEADER_SIZE: usize = 16;
+type SignatureCountLeInt = u16;
 
 fn main() -> Result<(), MainError> {
     let args = Cli::parse();
@@ -12,8 +17,6 @@ fn main() -> Result<(), MainError> {
         CliSubcommand::GenKey(args) => generate::main(args)?,
         CliSubcommand::Verify(args) => verify::main(args)?,
         CliSubcommand::Sign(args) => sign::main(args)?,
-        CliSubcommand::Tar(args) => tar::main(args)?,
-        CliSubcommand::Zip(args) => zip::main(args)?,
     }
     Ok(())
 }
@@ -32,9 +35,6 @@ enum CliSubcommand {
     GenKey(generate::Cli),
     Verify(verify::Cli),
     Sign(sign::Cli),
-    Tar(tar::Cli),
-    Zip(zip::Cli),
-    // TODO: verify .tar file
 }
 
 #[derive(pretty_error_debug::Debug, thiserror::Error)]
@@ -45,8 +45,4 @@ enum MainError {
     Verify(#[from] verify::Error),
     #[error("could not sign file")]
     Sign(#[from] sign::Error),
-    #[error("could not create signed .tar file")]
-    Tar(#[from] tar::Error),
-    #[error("could not create signed .zip file")]
-    Zip(#[from] zip::Error),
 }
