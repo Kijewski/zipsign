@@ -91,7 +91,6 @@ pub fn main(args: Cli) -> Result<(), Error> {
         if let Err(err) = result {
             return Err(Error::Read(err, args.input));
         }
-        prehashed_message.update(header);
         prehashed_message
     };
 

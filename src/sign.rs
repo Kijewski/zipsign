@@ -91,12 +91,6 @@ pub fn main(args: Cli) -> Result<(), Error> {
         }
     }
 
-    // the header is hashed, too, to the set of keys cannot be easily changed after the fact
-    let mut header = [0; HEADER_SIZE];
-    header[..MAGIC_HEADER.len()].copy_from_slice(MAGIC_HEADER);
-    header[MAGIC_HEADER.len()..]
-        .copy_from_slice(&(keys.len() as SignatureCountLeInt).to_le_bytes());
-
     // pre-hash input
     let mut prehashed_message = Sha512::new();
     if args.zip {
@@ -110,9 +104,13 @@ pub fn main(args: Cli) -> Result<(), Error> {
     } else if let Err(err) = copy(&mut input, &mut prehashed_message) {
         return Err(Error::Read(err, args.input));
     }
-    prehashed_message.update(header);
 
     // write signatures
+    let mut header = [0; HEADER_SIZE];
+    header[..MAGIC_HEADER.len()].copy_from_slice(MAGIC_HEADER);
+    header[MAGIC_HEADER.len()..]
+        .copy_from_slice(&(keys.len() as SignatureCountLeInt).to_le_bytes());
+
     let mut signatures_buf = Vec::with_capacity(signature_bytes);
     if !args.end_of_file {
         signatures_buf.extend(header);
