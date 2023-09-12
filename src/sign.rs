@@ -2,23 +2,26 @@ use std::fs::OpenOptions;
 use std::io::{copy, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
-use clap::Parser;
+use base64::engine::Engine;
+use base64::prelude::BASE64_STANDARD;
+use clap::{Args, Parser, Subcommand};
 use ed25519_dalek::{Digest, Sha512, SignatureError, SigningKey, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 use zip::result::ZipError;
 use zip::{ZipArchive, ZipWriter};
 
-use crate::{SignatureCountLeInt, HEADER_SIZE, MAGIC_HEADER};
+use crate::{SignatureCountLeInt, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE, MAGIC_HEADER};
 
 pub fn main(args: Cli) -> Result<(), Error> {
-    if args.private_key.len() > SignatureCountLeInt::MAX as usize {
+    let (kind, args) = args.subcommand.split();
+
+    if args.keys.len() > SignatureCountLeInt::MAX as usize {
         return Err(Error::TooManyKeys);
     }
-    let signature_bytes = SIGNATURE_LENGTH * args.private_key.len() + HEADER_SIZE;
-    let context = args.context.as_deref().map(str::as_bytes);
+    let signature_bytes = SIGNATURE_LENGTH * args.keys.len() + HEADER_SIZE;
 
     // read signing keys
     let mut keys = args
-        .private_key
+        .keys
         .into_iter()
         .map(|key_file| {
             let mut key = [0; KEYPAIR_LENGTH];
@@ -52,22 +55,22 @@ pub fn main(args: Cli) -> Result<(), Error> {
         .write(true)
         .create(true)
         .truncate(true)
-        .open(&args.signature)
+        .open(&args.output)
     {
         Ok(f) => f,
-        Err(err) => return Err(Error::OpenWrite(err, args.signature)),
+        Err(err) => return Err(Error::OpenWrite(err, args.output)),
     };
 
     // Copy ZIP file.
     // The file headers inside a ZIP file contain references to the absolute position in the file,
     // so the checksum of the copy will be different from its original.
-    if args.zip {
+    if kind == ArchiveKind::Zip {
         let signature_bytes = signature_bytes.try_into().unwrap();
         if let Err(err) = output.set_len(signature_bytes) {
-            return Err(Error::Write(err, args.signature));
+            return Err(Error::Write(err, args.output));
         }
         if let Err(err) = output.seek(SeekFrom::Start(signature_bytes)) {
-            return Err(Error::Seek(err, args.signature));
+            return Err(Error::Seek(err, args.output));
         }
 
         let mut input = match ZipArchive::new(BufReader::new(&mut input)) {
@@ -83,79 +86,151 @@ pub fn main(args: Cli) -> Result<(), Error> {
                 Err(err) => return Err(Error::ZipRead(err, args.input, idx)),
             };
             if let Err(err) = output.raw_copy_file(file) {
-                return Err(Error::ZipWrite(err, args.signature, idx));
+                return Err(Error::ZipWrite(err, args.output, idx));
             }
         }
         if let Err(err) = output.finish() {
-            return Err(Error::ZipFinish(err, args.signature));
+            return Err(Error::ZipFinish(err, args.output));
         }
     }
 
     // pre-hash input
     let mut prehashed_message = Sha512::new();
-    if args.zip {
-        let signature_bytes = signature_bytes.try_into().unwrap();
-        if let Err(err) = output.seek(SeekFrom::Start(signature_bytes)) {
-            return Err(Error::Seek(err, args.input));
-        }
-        if let Err(err) = copy(&mut output, &mut prehashed_message) {
-            return Err(Error::Read(err, args.signature));
-        }
-    } else if let Err(err) = copy(&mut input, &mut prehashed_message) {
-        return Err(Error::Read(err, args.input));
+    match kind {
+        ArchiveKind::Separate => {
+            if let Err(err) = copy(&mut input, &mut prehashed_message) {
+                return Err(Error::Read(err, args.input));
+            }
+        },
+        ArchiveKind::Zip => {
+            let signature_bytes = signature_bytes.try_into().unwrap();
+            if let Err(err) = output.seek(SeekFrom::Start(signature_bytes)) {
+                return Err(Error::Seek(err, args.input));
+            }
+            if let Err(err) = copy(&mut output, &mut prehashed_message) {
+                return Err(Error::Read(err, args.output));
+            }
+        },
+        ArchiveKind::Tar => {
+            if let Err(err) = copy(&mut input, &mut output) {
+                return Err(Error::Read(err, args.output));
+            }
+            if let Err(err) = input.seek(SeekFrom::Start(0)) {
+                return Err(Error::Seek(err, args.output));
+            }
+            if let Err(err) = copy(&mut input, &mut prehashed_message) {
+                return Err(Error::Read(err, args.output));
+            }
+        },
     }
 
-    // write signatures
+    // gather signature data
     let mut header = [0; HEADER_SIZE];
     header[..MAGIC_HEADER.len()].copy_from_slice(MAGIC_HEADER);
     header[MAGIC_HEADER.len()..]
         .copy_from_slice(&(keys.len() as SignatureCountLeInt).to_le_bytes());
 
     let mut signatures_buf = Vec::with_capacity(signature_bytes);
-    if !args.end_of_file {
-        signatures_buf.extend(header);
-    }
+    signatures_buf.extend(header);
+
+    let context = match &args.context {
+        Some(context) => context.as_bytes(),
+        None => {
+            // TODO: FIXME: windows
+            std::os::unix::prelude::OsStrExt::as_bytes(args.output.as_os_str())
+        },
+    };
     for key in keys {
         let signature = key
-            .sign_prehashed(prehashed_message.clone(), context)
+            .sign_prehashed(prehashed_message.clone(), Some(context))
             .map_err(Error::FileSign)?;
         signatures_buf.extend(signature.to_bytes());
     }
-    if args.end_of_file {
-        signatures_buf.extend(header);
-    }
-    if args.zip {
-        if let Err(err) = output.seek(SeekFrom::Start(0)) {
-            return Err(Error::Seek(err, args.signature));
-        }
-    }
-    if let Err(err) = output.write_all(&signatures_buf) {
-        return Err(Error::Write(err, args.signature));
+
+    // write signatures
+    match kind {
+        ArchiveKind::Separate => {
+            if let Err(err) = output.write_all(&signatures_buf) {
+                return Err(Error::Write(err, args.output));
+            }
+        },
+        ArchiveKind::Zip => {
+            if let Err(err) = output.seek(SeekFrom::Start(0)) {
+                return Err(Error::Seek(err, args.output));
+            }
+            if let Err(err) = output.write_all(&signatures_buf) {
+                return Err(Error::Write(err, args.output));
+            }
+        },
+        ArchiveKind::Tar => {
+            let signatures = BASE64_STANDARD.encode(signatures_buf);
+            let start = match output.stream_position() {
+                Ok(start) => format!("{start:016x}"),
+                Err(err) => return Err(Error::Seek(err, args.output)),
+            };
+
+            let mut tail = Vec::with_capacity(GZIP_EXTRA + signatures.len());
+            tail.extend(GZIP_START);
+            tail.extend(signatures.into_bytes()); // GZIP comment
+            tail.extend(start.into_bytes()); // GZIP comment
+            tail.extend(GZIP_END);
+            if let Err(err) = output.write_all(&tail) {
+                return Err(Error::Write(err, args.output));
+            }
+        },
     }
     Ok(())
 }
 
 /// Generate signature for a file
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, Clone)]
 pub struct Cli {
-    /// File to verify
-    #[arg(long, short = 'i')]
+    #[command(subcommand)]
+    subcommand: CliKind,
+}
+
+impl CliKind {
+    fn split(self) -> (ArchiveKind, CommonArgs) {
+        match self {
+            CliKind::Separate(common) => (ArchiveKind::Separate, common),
+            CliKind::Zip(common) => (ArchiveKind::Zip, common),
+            CliKind::Tar(common) => (ArchiveKind::Tar, common),
+        }
+    }
+}
+
+#[derive(Debug, Subcommand, Clone)]
+enum CliKind {
+    /// Store generated signature in a separate file
+    Separate(#[command(flatten)] CommonArgs),
+    /// `<INPUT>` is a .zip file.
+    /// Its data is copied and the signatures are stored next to the data.
+    Zip(#[command(flatten)] CommonArgs),
+    /// `<INPUT>` is a gzipped .tar file.
+    /// Its data is copied and the signatures are stored next to the data.
+    Tar(#[command(flatten)] CommonArgs),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ArchiveKind {
+    Separate,
+    Zip,
+    Tar,
+}
+
+#[derive(Debug, Args, Clone)]
+struct CommonArgs {
+    /// Input file to sign
     input: PathBuf,
-    /// Signature to (over)write
+    /// Signed file to generate
     #[arg(long, short = 'o')]
-    signature: PathBuf,
+    output: PathBuf,
     /// One or more files containing private keys
-    #[arg(long, short = 'k', num_args = 1..)]
-    private_key: Vec<PathBuf>,
-    /// Context (an arbitrary string used to salt the input, e.g. the basename of `<INPUT>`)
+    #[arg(required = true)]
+    keys: Vec<PathBuf>,
+    /// Arbitrary string used to salt the input, defaults to file name of `<OUTPUT>`
     #[arg(long, short = 'c')]
     context: Option<String>,
-    /// `<INPUT>` is a ZIP file. Copy its data into the output.
-    #[arg(long, short = 'z')]
-    zip: bool,
-    /// Signatures at end of file (.tar files)
-    #[arg(long, short = 'e')]
-    end_of_file: bool,
 }
 
 #[derive(Debug, thiserror::Error)]

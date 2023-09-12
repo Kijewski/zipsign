@@ -8,25 +8,43 @@ cargo install --git https://github.com/Kijewski/zipsign
 
 ### Example
 
-```sh
-# Generate key pair:
-$ zipsign gen-key priv.key pub.key
+* .zip:
 
-# ZIP a file and list the content of the ZIP file:
-$ 7z a Cargo.lock.zip Cargo.lock
-$ 7z l Cargo.lock.zip
-Cargo.lock
+    ```sh
+    # Generate key pair:
+    $ zipsign gen-key priv.key pub.key
 
-# Sign the ZIP file:
-$ zipsign sign -k priv.key -i Cargo.lock.zip -o Cargo.lock.tmp -c Cargo.lock --zip
-$ mv Cargo.lock.tmp Cargo.lock.zip
-$ 7z l Cargo.lock.zip
-Cargo.lock
+    # ZIP a file and list the content of the ZIP file:
+    $ 7z a Cargo.lock.zip Cargo.lock
+    $ 7z l Cargo.lock.zip
+    Cargo.lock
 
-# Verify that the generated signature is valid:
-$ zipsign verify -k pub.key -i Cargo.lock.zip -c Cargo.lock
-OK
-```
+    # Sign the ZIP file:
+    $ zipsign sign zip -o Cargo.lock.signed.zip Cargo.lock.zip priv.key
+    $ 7z l Cargo.lock.signed.zip
+    Cargo.lock
+
+    # Verify that the generated signature is valid:
+    $ zipsign verify zip Cargo.lock.signed.zip pub.key
+    OK
+    ```
+
+* .tar:
+
+    ```sh
+    $ tar czf Cargo.lock.tgz Cargo.lock
+    $ tar tzf Cargo.lock.tgz
+    Cargo.lock
+
+    # Sign the .tar.gz file:
+    $ zipsign sign tar -o Cargo.lock.signed.tgz Cargo.lock.tgz priv.key
+    $ tar tzf Cargo.lock.tgz
+    Cargo.lock
+
+    # Verify that the generated signature is valid:
+    $ zipsign verify tar Cargo.lock.signed.tgz pub.key
+    OK
+    ```
 
 ### Generate key
 
@@ -37,29 +55,53 @@ Arguments:
 * `PRIVATE_KEY`:    Private key file to create
 * `VERIFYING_KEY`:  Verifying key (public key) file to create
 
-### Generate signatures
+### Sign a .zip or .tar.gz file
 
-Usage: `zipsign sign -k <PRIVATE_KEY> -i <INPUT> -o <SIGNATURE> [OPTIONS]`
+Usage: `zipsign sign [zip|tar] -o <SIGNED_FILE> <INPUT> <PRIVATE_KEY>...`
 
-Arguments:
+Subcommands:
+
+* `zip`: Sign a .zip file
+* `tar`: Sign a .tar.gz file
 
 Options:
 
-* `-i`, `--input <INPUT>`:              File to verify
-* `-o`, `--signature <SIGNATURE>`:      Signature to (over)write
-* `-k`, `--private-key <PRIVATE_KEY>…`: One or more files containing private keys
-* `-c`, `--context <CONTEXT>`:          Context (an arbitrary string used to salt the input, e.g. the basename of `<INPUT>`)
-* `-z`, `--zip`:                        `<INPUT>` is a ZIP file. Copy its data into the output
-* `-e`, `--end-of-file`:                Signatures at end of file (.tar files)
-
-### Verify a signature
-
-Usage: `zipsign verify -k <VERIFYING_KEY> -i <INPUT> [-o <SIGNATURE>] [OPTIONS]`
+* `-o`, `--output <OUTPUT>`:   Signed file to generate
+* `-c`, `--context <CONTEXT>`: Arbitrary string used to salt the input, defaults to file name of `<OUTPUT>`
 
 Arguments:
 
-* `-i`, `--input <INPUT>`:                  File to verify
-* `-o`, `--signature <SIGNATURE>`:          Signature file. If absent the signature it is read from `<INPUT>`
-* `-k`, `--verifying-key <VERIFYING_KEY>…`: One or more files containing verifying keys
-* `-z`, `--zip`:                            `<INPUT>` is a ZIP file. Copy its data into the output
-* `-e`, `--end-of-file`:                    Signatures at end of file (.tar files)
+* `<INPUT>`:   Input file to sign
+* `<KEYS>...`: One or more files containing private keys
+
+### Verify a signature
+
+Usage: `zipsign verify [zip|tar] <SIGNED_FILE>`
+
+Subcommands:
+
+* `zip`: Verify a signed .zip file
+* `tar`: Verify a signed .tar.gz file
+
+Options:
+
+* `-c`, `--context <CONTEXT>`: An arbitrary string used to salt the input, defaults to file name of `<INPUT>`
+* `-q`, `--quiet`:             Don't write "OK" if the verification succeeded
+
+Arguments:
+
+* `<INPUT>`:   Signed .zip or .tar.gz file
+* `<KEYS>...`: One or more files containing verifying keys
+
+### How does it work?
+
+The files are signed with one or more private keys using [ed25519ph](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1).
+The signatures are stored transparently next to the data.
+
+For .tar.gz files the signatures are encoded as [base64](https://datatracker.ietf.org/doc/html/rfc4648#page-5) string.
+The string gets encapsulated as the comment of a GZIP file, and this GZIP file is appended to the input document.
+This works, because multiple GZIP files can be freely concatenated.
+
+For .zip files the signature gets prepended to the input document.
+This works because ZIP files can be prepended with any data as long as all relative addresses are fixed up afterwards.
+This feature is used e.g. self-extracting ZIP files.
