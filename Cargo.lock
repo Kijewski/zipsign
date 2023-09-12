@@ -649,4 +649,14 @@ dependencies = [
  "rand_core",
  "thiserror",
  "zip",
+ "zipsign-api",
+]
+
+[[package]]
+name = "zipsign-api"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "ed25519-dalek",
+ "thiserror",
 ]

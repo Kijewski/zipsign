@@ -6,7 +6,11 @@ edition = "2021"
 authors = ["René Kijewski <crates.io@k6i.de>"]
 license = "MIT OR Apache-2.0 WITH LLVM-exception"
 
-[dependencies]
+[workspace]
+members = [".", "api"]
+default-members = [".", "api"]
+
+[workspace.dependencies]
 base64 = "0.21.4"
 clap = { version = "4.4.2", features = ["derive"] }
 ed25519-dalek = { version = "2.0.0", features = ["digest", "rand_core", "zeroize"] }
@@ -14,3 +18,14 @@ pretty-error-debug = "0.3.0"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
 thiserror = "1.0.48"
 zip = { version = "0.6.6", default-features = false }
+zipsign-api = { version = "0.1.0", path = "api" }
+
+[dependencies]
+base64.workspace = true
+clap.workspace = true
+ed25519-dalek.workspace = true
+pretty-error-debug.workspace = true
+rand_core.workspace = true
+thiserror.workspace = true
+zip.workspace = true
+zipsign-api.workspace = true

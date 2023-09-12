@@ -8,8 +8,9 @@ use clap::{Args, Parser, Subcommand};
 use ed25519_dalek::{Digest, Sha512, SignatureError, SigningKey, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 use zip::result::ZipError;
 use zip::{ZipArchive, ZipWriter};
-
-use crate::{SignatureCountLeInt, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE, MAGIC_HEADER};
+use zipsign_api::{
+    SignatureCountLeInt, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE, MAGIC_HEADER,
+};
 
 pub fn main(args: Cli) -> Result<(), Error> {
     let (kind, args) = args.subcommand.split();

@@ -1,44 +1,21 @@
-use std::fs::{File, OpenOptions};
-use std::io::{copy, Read, Seek, SeekFrom};
+use std::fs::File;
+use std::io::Read;
 use std::path::PathBuf;
 
-use base64::engine::Engine;
-use base64::prelude::BASE64_STANDARD;
 use clap::{Args, Parser, Subcommand};
-use ed25519_dalek::{
-    Digest, Sha512, Signature, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
+use zipsign_api::verify::{
+    collect_keys, find_match, prehash, read_signatures, read_tar, read_zip, Error as ApiError,
+    SignatureError, PUBLIC_KEY_LENGTH,
 };
 
-use crate::{SignatureCountLeInt, GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER};
-
 pub fn main(args: Cli) -> Result<(), Error> {
-    let (kind, input, args) = args.subcommand.split();
+    let (kind, input, mut args) = args.subcommand.split();
 
-    // prehash input and read signatures
-    let (input, prehashed_message, signatures) = match kind {
-        ArchiveKind::Separate { signature } => prehash_separate(input, signature)?,
-        ArchiveKind::Zip => prehash_zip(input)?,
-        ArchiveKind::Tar => prehash_tar(input)?,
+    let mut input_file = match File::open(&input) {
+        Ok(f) => f,
+        Err(err) => return Err(Error::Open(err, input)),
     };
 
-    // read verifying keys
-    let keys = args
-        .keys
-        .into_iter()
-        .map(|key_file| {
-            let mut key = [0; PUBLIC_KEY_LENGTH];
-            let mut f = match OpenOptions::new().read(true).open(&key_file) {
-                Ok(f) => f,
-                Err(err) => return Err(Error::OpenRead(err, key_file)),
-            };
-            if let Err(err) = f.read_exact(&mut key) {
-                return Err(Error::Read(err, key_file));
-            }
-            VerifyingKey::from_bytes(&key).map_err(|err| Error::KeyInvalid(err, key_file))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    // try to find `(signature, verifying key)` match
     let context = match &args.context {
         Some(context) => context.as_bytes(),
         None => {
@@ -46,176 +23,69 @@ pub fn main(args: Cli) -> Result<(), Error> {
             std::os::unix::prelude::OsStrExt::as_bytes(input.as_os_str())
         },
     };
-    for key in &keys {
-        for signature in &signatures {
-            if key
-                .verify_prehashed_strict(prehashed_message.clone(), Some(context), signature)
-                .is_ok()
-            {
-                if !args.quiet {
-                    println!("OK");
-                }
-                return Ok(());
-            }
-        }
-    }
-    Err(Error::NoMatch)
-}
 
-fn prehash_separate(
-    input: PathBuf,
-    signatures: PathBuf,
-) -> Result<(PathBuf, Sha512, Vec<Signature>), Error> {
-    // read signatures
-    let mut f = match OpenOptions::new().read(true).open(&signatures) {
-        Ok(f) => f,
-        Err(err) => return Err(Error::OpenRead(err, signatures)),
-    };
-    let (_, signatures) = read_signatures(&mut f, signatures)?;
-    drop(f);
-
-    // pre-hash file
-    let mut f = match OpenOptions::new().read(true).open(&input) {
-        Ok(f) => f,
-        Err(err) => return Err(Error::OpenRead(err, input)),
-    };
-    let mut prehashed_message = Sha512::new();
-    if let Err(err) = copy(&mut f, &mut prehashed_message) {
-        return Err(Error::Read(err, input));
-    }
-
-    Ok((input, prehashed_message, signatures))
-}
-
-fn prehash_zip(input: PathBuf) -> Result<(PathBuf, Sha512, Vec<Signature>), Error> {
-    let mut f = match OpenOptions::new().read(true).open(&input) {
-        Ok(f) => f,
-        Err(err) => return Err(Error::OpenRead(err, input)),
-    };
-
-    // read signatures
-    let (input, signatures) = read_signatures(&mut f, input)?;
-
-    // pre-hash file
-    let mut prehashed_message = Sha512::new();
-    if let Err(err) = copy(&mut f, &mut prehashed_message) {
-        return Err(Error::Read(err, input));
-    }
-
-    Ok((input, prehashed_message, signatures))
-}
-
-fn read_signatures(f: &mut File, input: PathBuf) -> Result<(PathBuf, Vec<Signature>), Error> {
-    let mut header = [0; HEADER_SIZE];
-    if let Err(err) = f.read_exact(&mut header) {
-        return Err(Error::Read(err, input));
-    }
-    if header[..MAGIC_HEADER.len()] != *MAGIC_HEADER {
-        return Err(Error::MagicHeader(input));
-    }
-
-    let signature_count = header[MAGIC_HEADER.len()..].try_into().unwrap();
-    let signature_count = SignatureCountLeInt::from_le_bytes(signature_count) as usize;
-    let signature_bytes = signature_count * SIGNATURE_LENGTH;
-    if signature_bytes > (8 << 20) {
-        return Err(Error::MagicHeader(input));
-    }
-
-    let mut signatures = vec![0; signature_bytes];
-    if let Err(err) = f.read_exact(&mut signatures) {
-        return Err(Error::Read(err, input));
-    };
-
-    let signatures = signatures
-        .chunks_exact(SIGNATURE_LENGTH)
+    let keys: Result<Vec<_>, _> = args
+        .keys
+        .iter()
+        .map(|k| k.as_path())
         .enumerate()
-        .map(|(idx, bytes)| {
-            Signature::from_slice(bytes).map_err(|err| Error::IllegalSignature(err, idx))
+        .map(|(idx, key_file)| {
+            let mut key = [0; PUBLIC_KEY_LENGTH];
+            File::open(key_file)
+                .map_err(|err| (false, err, idx))?
+                .read_exact(&mut key)
+                .map_err(|err| (true, err, idx))?;
+            Ok(key)
         })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok((input, signatures))
-}
-
-fn prehash_tar(input: PathBuf) -> Result<(PathBuf, Sha512, Vec<Signature>), Error> {
-    let mut f = match OpenOptions::new().read(true).open(&input) {
-        Ok(f) => f,
-        Err(err) => return Err(Error::OpenRead(err, input)),
+        .collect();
+    let keys = match keys {
+        Ok(keys) => keys,
+        Err((is_read, err, idx)) => {
+            let path = args.keys.swap_remove(idx);
+            return Err(match is_read {
+                false => Error::Open(err, path),
+                true => Error::Read(err, path),
+            });
+        },
+    };
+    let keys = match collect_keys(&keys) {
+        Ok(keys) => keys,
+        Err(err) => return Err(convert_error(err, input, args)),
     };
 
-    // seek to start of base64 encoded signatures
-    let mut tail = [0; u64::BITS as usize / 4 + GZIP_END.len()];
-    let data_end = match f.seek(SeekFrom::End(-(tail.len() as i64))) {
-        Ok(tail_start) => tail_start,
-        Err(err) => return Err(Error::Seek(err, input)),
+    let (prehashed_message, signatures) = match kind {
+        ArchiveKind::Separate { signature } => {
+            let prehashed_message = match prehash(&mut input_file) {
+                Ok(signatures) => signatures,
+                Err(err) => return Err(convert_error(err, input, args)),
+            };
+            let signatures = match File::open(&signature) {
+                Ok(mut file) => read_signatures(&mut file),
+                Err(err) => return Err(Error::Open(err, signature)),
+            };
+            let signatures = match signatures {
+                Ok(signatures) => signatures,
+                Err(err) => return Err(convert_error(err, signature, args)),
+            };
+            (prehashed_message, signatures)
+        },
+        ArchiveKind::Zip => match read_zip(&mut input_file) {
+            Ok(data) => data,
+            Err(err) => return Err(convert_error(err, input, args)),
+        },
+        ArchiveKind::Tar => match read_tar(&mut input_file) {
+            Ok(data) => data,
+            Err(err) => return Err(convert_error(err, input, args)),
+        },
     };
-    if let Err(err) = f.read_exact(&mut tail) {
-        return Err(Error::Read(err, input));
-    }
-    if tail[u64::BITS as usize / 4..] != *GZIP_END {
-        return Err(Error::MagicHeader(input));
+    if let Err(err) = find_match(&keys, &signatures, &prehashed_message, Some(context)) {
+        return Err(convert_error(err, input, args));
     }
 
-    let Ok(gzip_start) = std::str::from_utf8(&tail[..16]) else {
-        return Err(Error::MagicHeader(input));
-    };
-    let Ok(gzip_start) = u64::from_str_radix(gzip_start, 16) else {
-        return Err(Error::MagicHeader(input));
-    };
-    let Some(data_start) = gzip_start.checked_add(10) else {
-        return Err(Error::MagicHeader(input));
-    };
-    let Some(data_len) = data_end.checked_sub(data_start) else {
-        return Err(Error::MagicHeader(input));
-    };
-    let Ok(data_len) = usize::try_from(data_len) else {
-        return Err(Error::MagicHeader(input));
-    };
-    if data_len > (8 << 20) {
-        return Err(Error::MagicHeader(input));
+    if !args.quiet {
+        println!("OK");
     }
-
-    if let Err(err) = f.seek(SeekFrom::Start(gzip_start)) {
-        return Err(Error::Seek(err, input));
-    }
-
-    // read base64 encoded signatures
-    let mut data = vec![0; data_len + 10];
-    if let Err(err) = f.read_exact(&mut data) {
-        return Err(Error::Read(err, input));
-    }
-
-    if data[..GZIP_START.len()] != *GZIP_START {
-        return Err(Error::MagicHeader(input));
-    }
-
-    let Ok(data) = BASE64_STANDARD.decode(&data[GZIP_START.len()..]) else {
-        return Err(Error::MagicHeader(input));
-    };
-    if data.len() < HEADER_SIZE {
-        return Err(Error::MagicHeader(input));
-    }
-    if data[..MAGIC_HEADER.len()] != *MAGIC_HEADER {
-        return Err(Error::MagicHeader(input));
-    }
-    let signatures = data[HEADER_SIZE..]
-        .chunks_exact(SIGNATURE_LENGTH)
-        .enumerate()
-        .map(|(idx, bytes)| {
-            Signature::from_slice(bytes).map_err(|err| Error::IllegalSignature(err, idx))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    // pre-hash file
-    if let Err(err) = f.rewind() {
-        return Err(Error::Seek(err, input));
-    }
-    let mut prehashed_message = Sha512::new();
-    if let Err(err) = copy(&mut f.take(gzip_start), &mut prehashed_message) {
-        return Err(Error::Read(err, input));
-    }
-
-    Ok((input, prehashed_message, signatures))
+    Ok(())
 }
 
 /// Verify a signature
@@ -293,15 +163,29 @@ pub enum Error {
     #[error("no matching (signature, verifying_key) pair was found")]
     NoMatch,
     #[error("could not open {1:?} for reading")]
-    OpenRead(#[source] std::io::Error, PathBuf),
+    Open(#[source] std::io::Error, PathBuf),
     #[error("could not read from {1:?}")]
     Read(#[source] std::io::Error, PathBuf),
     #[error("could not not seek in file {1:?}")]
     Seek(#[source] std::io::Error, PathBuf),
     #[error("verify key {1:?} invalid")]
-    KeyInvalid(#[source] SignatureError, PathBuf),
+    IllegalKey(#[source] SignatureError, PathBuf),
     #[error("illegal signature #{1}")]
     IllegalSignature(#[source] SignatureError, usize),
     #[error("illegal, unknown or missing header in {0:?}")]
     MagicHeader(PathBuf),
+}
+
+fn convert_error(err: ApiError, input: PathBuf, mut args: CommonArgs) -> Error {
+    match err {
+        ApiError::NoMatch => Error::NoMatch,
+        ApiError::MagicHeader => Error::MagicHeader(input),
+        ApiError::Read(err) => Error::Read(err, input),
+        ApiError::Seek(err) => Error::Seek(err, input),
+        ApiError::IllegalKey(err, idx) => {
+            let path = args.keys.swap_remove(idx);
+            Error::IllegalKey(err, path)
+        },
+        ApiError::IllegalSignature(err, idx) => Error::IllegalSignature(err, idx),
+    }
 }
