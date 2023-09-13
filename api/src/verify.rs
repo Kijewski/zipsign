@@ -1,14 +1,19 @@
 //! Common functions to verify a signed file
 
-use std::io::{copy, Read, Seek, SeekFrom};
+#[cfg(feature = "verify-tar")]
+use std::io::SeekFrom;
+use std::io::{copy, Read, Seek};
 
-use base64::prelude::BASE64_STANDARD;
-use base64::Engine;
+#[cfg(feature = "verify-tar")]
+use base64::{prelude::BASE64_STANDARD, Engine};
 use ed25519_dalek::{Digest, Signature, SIGNATURE_LENGTH};
-#[doc(no_inline)]
-pub use ed25519_dalek::{Sha512, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH};
 
-use crate::{SignatureCountLeInt, GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER};
+use crate::{
+    Sha512, SignatureCountLeInt, SignatureError, VerifyingKey, HEADER_SIZE, MAGIC_HEADER,
+    PUBLIC_KEY_LENGTH,
+};
+#[cfg(feature = "verify-tar")]
+use crate::{GZIP_END, GZIP_START};
 
 const BUF_LIMIT: usize = 1 << 17; // 128 kiB
 
@@ -38,8 +43,10 @@ pub enum Error {
     IllegalSignature(#[source] SignatureError, usize),
 }
 
-/// Find the index of the first [`VerifyingKey`] that matches the a signature in a signed .tar.gz
+/// Find the index of the first [`VerifyingKey`] that matches the a signature in a signed `.tar.gz`
 /// file
+#[cfg(feature = "verify-tar")]
+#[cfg_attr(docsrs, doc(cfg(feature = "verify-tar")))]
 pub fn verify_tar<R: ?Sized + Read + Seek>(
     signed_file: &mut R,
     keys: &[[u8; PUBLIC_KEY_LENGTH]],
@@ -50,7 +57,10 @@ pub fn verify_tar<R: ?Sized + Read + Seek>(
     find_match(&keys, &signatures, &prehashed_message, context)
 }
 
-/// Find the index of the first [`VerifyingKey`] that matches the a signature in a signed .zip file
+/// Find the index of the first [`VerifyingKey`] that matches the a signature in a signed `.zip`
+/// file
+#[cfg(feature = "verify-zip")]
+#[cfg_attr(docsrs, doc(cfg(feature = "verify-zip")))]
 pub fn verify_zip<R: ?Sized + Read + Seek>(
     signed_file: &mut R,
     keys: &[[u8; PUBLIC_KEY_LENGTH]],
@@ -89,7 +99,9 @@ pub fn find_match(
     Err(Error::NoMatch)
 }
 
-/// Hash the content of a signed .tar.gz file, and collect all contained signatures
+/// Hash the content of a signed `.tar.gz` file, and collect all contained signatures
+#[cfg(feature = "verify-tar")]
+#[cfg_attr(docsrs, doc(cfg(feature = "verify-tar")))]
 pub fn read_tar<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Sha512, Vec<Signature>)> {
     // seek to start of base64 encoded signatures
     let mut tail = [0; u64::BITS as usize / 4 + GZIP_END.len()];
@@ -156,7 +168,9 @@ pub fn read_tar<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Sha512,
     Ok((prehashed_message, signatures))
 }
 
-/// Hash the content of a signed .zip file, and collect all contained signatures
+/// Hash the content of a signed `.zip` file, and collect all contained signatures
+#[cfg(feature = "verify-zip")]
+#[cfg_attr(docsrs, doc(cfg(feature = "verify-zip")))]
 pub fn read_zip<R: ?Sized + Read + Seek>(signed_file: &mut R) -> Result<(Sha512, Vec<Signature>)> {
     let signatures = read_signatures(signed_file)?;
     let prehashed_message = prehash(signed_file)?;

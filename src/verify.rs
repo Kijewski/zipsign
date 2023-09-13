@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use zipsign_api::verify::{
     collect_keys, find_match, prehash, read_signatures, read_tar, read_zip, Error as ApiError,
-    SignatureError, PUBLIC_KEY_LENGTH,
 };
+use zipsign_api::{SignatureError, PUBLIC_KEY_LENGTH};
 
 pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let (kind, input, mut args) = args.subcommand.split();

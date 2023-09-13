@@ -7,6 +7,11 @@ authors = ["René Kijewski <crates.io@k6i.de>"]
 license = "MIT OR Apache-2.0 WITH LLVM-exception"
 
 [dependencies]
-base64.workspace = true
+base64 = { workspace = true, optional = true }
 ed25519-dalek.workspace = true
 thiserror.workspace = true
+
+[features]
+default = ["verify-tar", "verify-zip"]
+verify-tar = ["dep:base64"]
+verify-zip = []

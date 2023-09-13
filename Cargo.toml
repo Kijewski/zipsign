@@ -7,6 +7,7 @@ authors = ["René Kijewski <crates.io@k6i.de>"]
 license = "MIT OR Apache-2.0 WITH LLVM-exception"
 
 [workspace]
+resolver = "2"
 members = [".", "api"]
 default-members = [".", "api"]
 
@@ -29,3 +30,7 @@ rand_core.workspace = true
 thiserror.workspace = true
 zip.workspace = true
 zipsign-api.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

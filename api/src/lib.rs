@@ -22,6 +22,9 @@
 
 pub mod verify;
 
+#[doc(no_inline)]
+pub use ed25519_dalek::{Sha512, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH};
+
 // "\x0c\x04\x01" -- form feed, end of text, start of header
 // "ed25519ph" -- used algorithm
 // "\x00\x00" -- version number in network byte order
