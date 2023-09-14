@@ -3,7 +3,7 @@
 Sign and verify `.zip` and `.tar.gz` files with an ed25519 signing key.
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Kijewski/zipsign/ci.yml?branch=main)](https://github.com/Kijewski/zipsign/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/zipsign?logo=rust)](https://crates.io/crates/zipsign)
+[![Crates.io](https://img.shields.io/crates/v/zipsign-api?logo=rust)](https://crates.io/crates/zipsign-api)
 ![License: License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-informational?logo=apache)
 
 This library contains the brains of [`zipsign`](https://github.com/Kijewski/zipsign).
