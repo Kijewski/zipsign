@@ -29,11 +29,11 @@ pub enum Error {
     /// Illegal, unknown or missing header
     #[error("illegal, unknown or missing header")]
     MagicHeader,
-    /// An I/O error occured reading the signed file
-    #[error("an I/O error occured reading the signed file")]
+    /// An I/O error occurred reading the signed file
+    #[error("an I/O error occurred reading the signed file")]
     Read(#[source] std::io::Error),
-    /// An I/O error occured seeking inside the signed file
-    #[error("an I/O error occured seeking inside the signed file")]
+    /// An I/O error occurred seeking inside the signed file
+    #[error("an I/O error occurred seeking inside the signed file")]
     Seek(#[source] std::io::Error),
     /// A supplied key verifying key was invalid
     #[error("a supplied key verifying key was invalid (#{0})")]

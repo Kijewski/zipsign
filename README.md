@@ -57,7 +57,7 @@ Arguments:
 
 ### Sign a .zip or .tar.gz file
 
-Usage: `zipsign sign [zip|tar] -o <SIGNED_FILE> <INPUT> <PRIVATE_KEY>...`
+Usage: `zipsign sign [zip|tar] -o <SIGNED_FILE> <INPUT> <KEYS>...`
 
 Subcommands:
 
@@ -76,12 +76,12 @@ Arguments:
 
 ### Verify a signature
 
-Usage: `zipsign verify [zip|tar] <SIGNED_FILE>`
+Usage: `zipsign verify [zip|tar] <INPUT>`
 
 Subcommands:
 
-* `zip`: Verify a signed .zip file
-* `tar`: Verify a signed .tar.gz file
+* `zip`: Verify a signed `.zip` file
+* `tar`: Verify a signed `.tar.gz` file
 
 Options:
 
@@ -90,7 +90,7 @@ Options:
 
 Arguments:
 
-* `<INPUT>`:   Signed .zip or .tar.gz file
+* `<INPUT>`:   Signed `.zip` or `.tar.gz` file
 * `<KEYS>...`: One or more files containing verifying keys
 
 ### How does it work?
