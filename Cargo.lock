@@ -640,7 +640,7 @@ dependencies = [
 
 [[package]]
 name = "zipsign"
-version = "0.1.0-a.0"
+version = "0.1.0-a.1"
 dependencies = [
  "clap",
  "ed25519-dalek",
@@ -652,7 +652,7 @@ dependencies = [
 
 [[package]]
 name = "zipsign-api"
-version = "0.1.0-a.0"
+version = "0.1.0-a.1"
 dependencies = [
  "base64",
  "ed25519-dalek",

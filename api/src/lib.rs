@@ -91,3 +91,50 @@ where
     let _: u64 = copy(input, &mut prehashed_message)?;
     Ok(prehashed_message)
 }
+
+/// A collection of all error this library can return
+#[non_exhaustive]
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub enum ZipsignError {
+    /// An error returned by [`gather_signature_data()`][self::sign::gather_signature_data]
+    #[cfg(feature = "sign")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "sign")))]
+    GatherSignatureData(#[from] self::sign::GatherSignatureDataError),
+    /// An error returned by [`read_signing_keys()`][self::sign::read_signing_keys]
+    #[cfg(feature = "sign")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "sign")))]
+    ReadSigningKeys(#[from] self::sign::ReadSigningKeysError),
+    /// An error returned by [`copy_and_sign_tar()`][self::sign::copy_and_sign_tar]
+    #[cfg(feature = "sign-tar")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "sign-tar")))]
+    SignTar(#[from] self::sign::SignTarError),
+    /// An error returned by [`copy_and_sign_zip()`][self::sign::copy_and_sign_zip]
+    #[cfg(feature = "sign-zip")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "sign-zip")))]
+    SignZip(#[from] self::sign::SignZipError),
+
+    /// No matching key/signature pair found
+    #[cfg(feature = "verify")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "verify")))]
+    NoMatch(#[from] self::verify::NoMatch),
+    /// An error returned by [`collect_keys()`][self::verify::collect_keys]
+    #[cfg(feature = "verify")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "verify")))]
+    CollectKeys(#[from] self::verify::CollectKeysError),
+    /// An error returned by [`read_signatures()`][self::verify::read_signatures]
+    #[cfg(feature = "verify")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "verify")))]
+    ReadSignatures(#[from] self::verify::ReadSignaturesError),
+    /// An error returned by [`verify_tar()`][self::verify::verify_tar]
+    #[cfg(feature = "verify-tar")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "verify-tar")))]
+    VerifyTar(#[from] self::verify::VerifyTarError),
+    /// An error retuned by [`verify_zip()`][self::verify::verify_zip]
+    #[cfg(feature = "verify-zip")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "verify-zip")))]
+    VerifyZip(#[from] self::verify::VerifyZipError),
+
+    /// An I/O occurred
+    Io(#[from] std::io::Error),
+}
