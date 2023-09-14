@@ -12,6 +12,85 @@ use zipsign_api::{
     SignatureCountLeInt, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE, MAGIC_HEADER,
 };
 
+/// Generate signature for a file
+#[derive(Debug, Parser, Clone)]
+pub(crate) struct Cli {
+    #[command(subcommand)]
+    subcommand: CliKind,
+}
+
+impl CliKind {
+    fn split(self) -> (ArchiveKind, CommonArgs) {
+        match self {
+            CliKind::Separate(common) => (ArchiveKind::Separate, common),
+            CliKind::Zip(common) => (ArchiveKind::Zip, common),
+            CliKind::Tar(common) => (ArchiveKind::Tar, common),
+        }
+    }
+}
+
+#[derive(Debug, Subcommand, Clone)]
+enum CliKind {
+    /// Store generated signature in a separate file
+    Separate(#[command(flatten)] CommonArgs),
+    /// `<INPUT>` is a .zip file.
+    /// Its data is copied and the signatures are stored next to the data.
+    Zip(#[command(flatten)] CommonArgs),
+    /// `<INPUT>` is a gzipped .tar file.
+    /// Its data is copied and the signatures are stored next to the data.
+    Tar(#[command(flatten)] CommonArgs),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ArchiveKind {
+    Separate,
+    Zip,
+    Tar,
+}
+
+#[derive(Debug, Args, Clone)]
+struct CommonArgs {
+    /// Input file to sign
+    input: PathBuf,
+    /// Signed file to generate
+    #[arg(long, short = 'o')]
+    output: PathBuf,
+    /// One or more files containing private keys
+    #[arg(required = true)]
+    keys: Vec<PathBuf>,
+    /// Arbitrary string used to salt the input, defaults to file name of `<OUTPUT>`
+    #[arg(long, short = 'c')]
+    context: Option<String>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum Error {
+    #[error("could not open {1:?} for reading")]
+    OpenRead(#[source] std::io::Error, PathBuf),
+    #[error("could not open {1:?} for writing")]
+    OpenWrite(#[source] std::io::Error, PathBuf),
+    #[error("could not read from {1:?}")]
+    Read(#[source] std::io::Error, PathBuf),
+    #[error("could not write to {1:?}")]
+    Write(#[source] std::io::Error, PathBuf),
+    #[error("could not not seek in file {1:?}")]
+    Seek(#[source] std::io::Error, PathBuf),
+    #[error("private key {1:?} was invalid")]
+    KeyInvalid(#[source] SignatureError, PathBuf),
+    #[error("could not sign file")]
+    FileSign(#[source] SignatureError),
+    #[error("could not read ZIP file {1:?}")]
+    Zip(#[source] ZipError, PathBuf),
+    #[error("could not read entry #{2:?} of ZIP file {1:?}")]
+    ZipRead(#[source] ZipError, PathBuf, usize),
+    #[error("could not write entry #{2:?} input output file {1:?}")]
+    ZipWrite(#[source] ZipError, PathBuf, usize),
+    #[error("could not finalize output file {1:?}")]
+    ZipFinish(ZipError, PathBuf),
+    #[error("cannot have more than 65535 keys")]
+    TooManyKeys,
+}
+
 pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let (kind, args) = args.subcommand.split();
 
@@ -181,83 +260,4 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
         },
     }
     Ok(())
-}
-
-/// Generate signature for a file
-#[derive(Debug, Parser, Clone)]
-pub(crate) struct Cli {
-    #[command(subcommand)]
-    subcommand: CliKind,
-}
-
-impl CliKind {
-    fn split(self) -> (ArchiveKind, CommonArgs) {
-        match self {
-            CliKind::Separate(common) => (ArchiveKind::Separate, common),
-            CliKind::Zip(common) => (ArchiveKind::Zip, common),
-            CliKind::Tar(common) => (ArchiveKind::Tar, common),
-        }
-    }
-}
-
-#[derive(Debug, Subcommand, Clone)]
-enum CliKind {
-    /// Store generated signature in a separate file
-    Separate(#[command(flatten)] CommonArgs),
-    /// `<INPUT>` is a .zip file.
-    /// Its data is copied and the signatures are stored next to the data.
-    Zip(#[command(flatten)] CommonArgs),
-    /// `<INPUT>` is a gzipped .tar file.
-    /// Its data is copied and the signatures are stored next to the data.
-    Tar(#[command(flatten)] CommonArgs),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ArchiveKind {
-    Separate,
-    Zip,
-    Tar,
-}
-
-#[derive(Debug, Args, Clone)]
-struct CommonArgs {
-    /// Input file to sign
-    input: PathBuf,
-    /// Signed file to generate
-    #[arg(long, short = 'o')]
-    output: PathBuf,
-    /// One or more files containing private keys
-    #[arg(required = true)]
-    keys: Vec<PathBuf>,
-    /// Arbitrary string used to salt the input, defaults to file name of `<OUTPUT>`
-    #[arg(long, short = 'c')]
-    context: Option<String>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
-    #[error("could not open {1:?} for reading")]
-    OpenRead(#[source] std::io::Error, PathBuf),
-    #[error("could not open {1:?} for writing")]
-    OpenWrite(#[source] std::io::Error, PathBuf),
-    #[error("could not read from {1:?}")]
-    Read(#[source] std::io::Error, PathBuf),
-    #[error("could not write to {1:?}")]
-    Write(#[source] std::io::Error, PathBuf),
-    #[error("could not not seek in file {1:?}")]
-    Seek(#[source] std::io::Error, PathBuf),
-    #[error("private key {1:?} was invalid")]
-    KeyInvalid(#[source] SignatureError, PathBuf),
-    #[error("could not sign file")]
-    FileSign(#[source] SignatureError),
-    #[error("could not read ZIP file {1:?}")]
-    Zip(#[source] ZipError, PathBuf),
-    #[error("could not read entry #{2:?} of ZIP file {1:?}")]
-    ZipRead(#[source] ZipError, PathBuf, usize),
-    #[error("could not write entry #{2:?} input output file {1:?}")]
-    ZipWrite(#[source] ZipError, PathBuf, usize),
-    #[error("could not finalize output file {1:?}")]
-    ZipFinish(ZipError, PathBuf),
-    #[error("cannot have more than 65535 keys")]
-    TooManyKeys,
 }

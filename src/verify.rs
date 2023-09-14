@@ -8,86 +8,6 @@ use zipsign_api::verify::{
 };
 use zipsign_api::{SignatureError, PUBLIC_KEY_LENGTH};
 
-pub(crate) fn main(args: Cli) -> Result<(), Error> {
-    let (kind, input, mut args) = args.subcommand.split();
-
-    let mut input_file = match File::open(&input) {
-        Ok(f) => f,
-        Err(err) => return Err(Error::Open(err, input)),
-    };
-
-    let context = match &args.context {
-        Some(context) => context.as_bytes(),
-        None => {
-            // TODO: FIXME: windows
-            std::os::unix::prelude::OsStrExt::as_bytes(input.as_os_str())
-        },
-    };
-
-    let keys: Result<Vec<_>, _> = args
-        .keys
-        .iter()
-        .map(|k| k.as_path())
-        .enumerate()
-        .map(|(idx, key_file)| {
-            let mut key = [0; PUBLIC_KEY_LENGTH];
-            File::open(key_file)
-                .map_err(|err| (false, err, idx))?
-                .read_exact(&mut key)
-                .map_err(|err| (true, err, idx))?;
-            Ok(key)
-        })
-        .collect();
-    let keys = match keys {
-        Ok(keys) => keys,
-        Err((is_read, err, idx)) => {
-            let path = args.keys.swap_remove(idx);
-            return Err(match is_read {
-                false => Error::Open(err, path),
-                true => Error::Read(err, path),
-            });
-        },
-    };
-    let keys = match collect_keys(&keys) {
-        Ok(keys) => keys,
-        Err(err) => return Err(convert_error(err, input, args)),
-    };
-
-    let (prehashed_message, signatures) = match kind {
-        ArchiveKind::Separate { signature } => {
-            let prehashed_message = match prehash(&mut input_file) {
-                Ok(signatures) => signatures,
-                Err(err) => return Err(convert_error(err, input, args)),
-            };
-            let signatures = match File::open(&signature) {
-                Ok(mut file) => read_signatures(&mut file),
-                Err(err) => return Err(Error::Open(err, signature)),
-            };
-            let signatures = match signatures {
-                Ok(signatures) => signatures,
-                Err(err) => return Err(convert_error(err, signature, args)),
-            };
-            (prehashed_message, signatures)
-        },
-        ArchiveKind::Zip => match read_zip(&mut input_file) {
-            Ok(data) => data,
-            Err(err) => return Err(convert_error(err, input, args)),
-        },
-        ArchiveKind::Tar => match read_tar(&mut input_file) {
-            Ok(data) => data,
-            Err(err) => return Err(convert_error(err, input, args)),
-        },
-    };
-    if let Err(err) = find_match(&keys, &signatures, &prehashed_message, Some(context)) {
-        return Err(convert_error(err, input, args));
-    }
-
-    if !args.quiet {
-        println!("OK");
-    }
-    Ok(())
-}
-
 /// Verify a signature
 #[derive(Debug, Parser, Clone)]
 pub(crate) struct Cli {
@@ -174,6 +94,86 @@ pub(crate) enum Error {
     IllegalSignature(#[source] SignatureError, usize),
     #[error("illegal, unknown or missing header in {0:?}")]
     MagicHeader(PathBuf),
+}
+
+pub(crate) fn main(args: Cli) -> Result<(), Error> {
+    let (kind, input, mut args) = args.subcommand.split();
+
+    let mut input_file = match File::open(&input) {
+        Ok(f) => f,
+        Err(err) => return Err(Error::Open(err, input)),
+    };
+
+    let context = match &args.context {
+        Some(context) => context.as_bytes(),
+        None => {
+            // TODO: FIXME: windows
+            std::os::unix::prelude::OsStrExt::as_bytes(input.as_os_str())
+        },
+    };
+
+    let keys: Result<Vec<_>, _> = args
+        .keys
+        .iter()
+        .map(|k| k.as_path())
+        .enumerate()
+        .map(|(idx, key_file)| {
+            let mut key = [0; PUBLIC_KEY_LENGTH];
+            File::open(key_file)
+                .map_err(|err| (false, err, idx))?
+                .read_exact(&mut key)
+                .map_err(|err| (true, err, idx))?;
+            Ok(key)
+        })
+        .collect();
+    let keys = match keys {
+        Ok(keys) => keys,
+        Err((is_read, err, idx)) => {
+            let path = args.keys.swap_remove(idx);
+            return Err(match is_read {
+                false => Error::Open(err, path),
+                true => Error::Read(err, path),
+            });
+        },
+    };
+    let keys = match collect_keys(&keys) {
+        Ok(keys) => keys,
+        Err(err) => return Err(convert_error(err, input, args)),
+    };
+
+    let (prehashed_message, signatures) = match kind {
+        ArchiveKind::Separate { signature } => {
+            let prehashed_message = match prehash(&mut input_file) {
+                Ok(signatures) => signatures,
+                Err(err) => return Err(convert_error(err, input, args)),
+            };
+            let signatures = match File::open(&signature) {
+                Ok(mut file) => read_signatures(&mut file),
+                Err(err) => return Err(Error::Open(err, signature)),
+            };
+            let signatures = match signatures {
+                Ok(signatures) => signatures,
+                Err(err) => return Err(convert_error(err, signature, args)),
+            };
+            (prehashed_message, signatures)
+        },
+        ArchiveKind::Zip => match read_zip(&mut input_file) {
+            Ok(data) => data,
+            Err(err) => return Err(convert_error(err, input, args)),
+        },
+        ArchiveKind::Tar => match read_tar(&mut input_file) {
+            Ok(data) => data,
+            Err(err) => return Err(convert_error(err, input, args)),
+        },
+    };
+    if let Err(err) = find_match(&keys, &signatures, &prehashed_message, Some(context)) {
+        return Err(convert_error(err, input, args));
+    }
+
+    if !args.quiet {
+        println!("OK");
+    }
+    Ok(())
 }
 
 fn convert_error(err: ApiError, input: PathBuf, mut args: CommonArgs) -> Error {

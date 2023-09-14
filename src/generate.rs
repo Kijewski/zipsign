@@ -8,15 +8,31 @@ use clap::Parser;
 use ed25519_dalek::{SigningKey, KEYPAIR_LENGTH};
 use rand_core::OsRng;
 
-trait NotUnixOpenOptionsExt {
-    #[inline(always)]
-    fn mode(&mut self, _mode: u32) -> &mut Self {
-        self
-    }
+/// Generate a signing key
+#[derive(Debug, Parser, Clone)]
+pub(crate) struct Cli {
+    /// Private key file to create
+    private_key: PathBuf,
+    /// Verifying key (public key) file to create
+    verifying_key: PathBuf,
+    /// Read from `<PRIVATE_KEY>` to write `<VERIFYING_KEY>`
+    #[arg(long, short = 'e')]
+    extract: bool,
 }
 
-#[cfg(not(unix))]
-impl NotUnixOpenOptionsExt for OpenOptions {}
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum Error {
+    #[error("could not open {1:?} for writing")]
+    OpenWrite(#[source] std::io::Error, PathBuf),
+    #[error("could not open {1:?} for reading")]
+    OpenRead(#[source] std::io::Error, PathBuf),
+    #[error("could not write to {1:?}")]
+    Write(#[source] std::io::Error, PathBuf),
+    #[error("could not read from {1:?}")]
+    Read(#[source] std::io::Error, PathBuf),
+    #[error("no valid key found in from {1:?}")]
+    IllegalKey(#[source] ed25519_dalek::SignatureError, PathBuf),
+}
 
 pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let key = if args.extract {
@@ -64,28 +80,12 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
         .map_err(|err| Error::Write(err, args.verifying_key))
 }
 
-/// Generate a signing key
-#[derive(Debug, Parser, Clone)]
-pub(crate) struct Cli {
-    /// Private key file to create
-    private_key: PathBuf,
-    /// Verifying key (public key) file to create
-    verifying_key: PathBuf,
-    /// Read from `<PRIVATE_KEY>` to write `<VERIFYING_KEY>`
-    #[arg(long, short = 'e')]
-    extract: bool,
+trait NotUnixOpenOptionsExt {
+    #[inline(always)]
+    fn mode(&mut self, _mode: u32) -> &mut Self {
+        self
+    }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
-    #[error("could not open {1:?} for writing")]
-    OpenWrite(#[source] std::io::Error, PathBuf),
-    #[error("could not open {1:?} for reading")]
-    OpenRead(#[source] std::io::Error, PathBuf),
-    #[error("could not write to {1:?}")]
-    Write(#[source] std::io::Error, PathBuf),
-    #[error("could not read from {1:?}")]
-    Read(#[source] std::io::Error, PathBuf),
-    #[error("no valid key found in from {1:?}")]
-    IllegalKey(#[source] ed25519_dalek::SignatureError, PathBuf),
-}
+#[cfg(not(unix))]
+impl NotUnixOpenOptionsExt for OpenOptions {}

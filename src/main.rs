@@ -26,16 +26,6 @@ mod verify;
 
 use clap::{Parser, Subcommand};
 
-fn main() -> Result<(), MainError> {
-    let args = Cli::parse();
-    match args.subcommand {
-        CliSubcommand::GenKey(args) => generate::main(args)?,
-        CliSubcommand::Verify(args) => verify::main(args)?,
-        CliSubcommand::Sign(args) => sign::main(args)?,
-    }
-    Ok(())
-}
-
 /// Sign a file with an ed25519 signing key.
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -60,4 +50,14 @@ enum MainError {
     Verify(#[from] verify::Error),
     #[error("could not sign file")]
     Sign(#[from] sign::Error),
+}
+
+fn main() -> Result<(), MainError> {
+    let args = Cli::parse();
+    match args.subcommand {
+        CliSubcommand::GenKey(args) => generate::main(args)?,
+        CliSubcommand::Verify(args) => verify::main(args)?,
+        CliSubcommand::Sign(args) => sign::main(args)?,
+    }
+    Ok(())
 }
