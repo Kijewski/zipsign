@@ -8,7 +8,7 @@ use zip::{ZipArchive, ZipWriter};
 use super::{gather_signature_data, prehashed_message, GatherSignatureDataError};
 use crate::{SignatureCountLeInt, SigningKey, BUF_LIMIT, HEADER_SIZE, SIGNATURE_LENGTH};
 
-/// An error returned by [`copy_and_sign()`]
+/// An error returned by [`copy_and_sign_zip()`]
 #[derive(Debug, thiserror::Error)]
 pub enum SignZipError {
     /// Could not read input ZIP

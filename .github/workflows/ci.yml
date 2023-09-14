@@ -101,6 +101,21 @@ jobs:
 
       - run: cargo package --package zipsign
 
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: doc
+          toolchain: nightly
+
+      - run: cargo +nightly doc --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: "--cfg docsrs -D warnings"
+
   audit:
     runs-on: ubuntu-latest
     steps:
