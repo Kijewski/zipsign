@@ -8,6 +8,8 @@ use zipsign_api::verify::{
 };
 use zipsign_api::{SignatureError, PUBLIC_KEY_LENGTH};
 
+use crate::{get_context, ImplicitContextError};
+
 /// Verify a signature
 #[derive(Debug, Parser, Clone)]
 pub(crate) struct Cli {
@@ -94,6 +96,8 @@ pub(crate) enum Error {
     IllegalSignature(#[source] SignatureError, usize),
     #[error("illegal, unknown or missing header in {0:?}")]
     MagicHeader(PathBuf),
+    #[error("could not get context implicitly from path {1:?}")]
+    ImplicitContext(#[source] ImplicitContextError, PathBuf),
 }
 
 pub(crate) fn main(args: Cli) -> Result<(), Error> {
@@ -103,13 +107,9 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
         Ok(f) => f,
         Err(err) => return Err(Error::Open(err, input)),
     };
-
-    let context = match &args.context {
-        Some(context) => context.as_bytes(),
-        None => {
-            // TODO: FIXME: windows
-            std::os::unix::prelude::OsStrExt::as_bytes(input.as_os_str())
-        },
+    let context = match get_context(args.context.as_deref(), &input) {
+        Ok(context) => context,
+        Err(err) => return Err(Error::ImplicitContext(err, input)),
     };
 
     let keys: Result<Vec<_>, _> = args

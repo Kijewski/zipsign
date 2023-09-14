@@ -12,6 +12,8 @@ use zipsign_api::{
     SignatureCountLeInt, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE, MAGIC_HEADER,
 };
 
+use crate::{get_context, ImplicitContextError};
+
 /// Generate signature for a file
 #[derive(Debug, Parser, Clone)]
 pub(crate) struct Cli {
@@ -89,6 +91,8 @@ pub(crate) enum Error {
     ZipFinish(ZipError, PathBuf),
     #[error("cannot have more than 65535 keys")]
     TooManyKeys,
+    #[error("could not get context implicitly from path {1:?}")]
+    ImplicitContext(#[source] ImplicitContextError, PathBuf),
 }
 
 pub(crate) fn main(args: Cli) -> Result<(), Error> {
@@ -213,12 +217,9 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let mut signatures_buf = Vec::with_capacity(signature_bytes);
     signatures_buf.extend(header);
 
-    let context = match &args.context {
-        Some(context) => context.as_bytes(),
-        None => {
-            // TODO: FIXME: windows
-            std::os::unix::prelude::OsStrExt::as_bytes(args.output.as_os_str())
-        },
+    let context = match get_context(args.context.as_deref(), &args.output) {
+        Ok(context) => context,
+        Err(err) => return Err(Error::ImplicitContext(err, args.output)),
     };
     for key in keys {
         let signature = key
