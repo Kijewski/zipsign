@@ -20,10 +20,18 @@
 #![warn(unused_results)]
 #![doc = include_str!("../README.md")]
 
+#[cfg(feature = "sign")]
+pub mod sign;
+#[cfg(feature = "verify")]
 pub mod verify;
 
+use std::io::{copy, Read};
+
 #[doc(no_inline)]
-pub use ed25519_dalek::{Sha512, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH};
+pub use ed25519_dalek::{
+    Digest, Sha512, Signature, SignatureError, SigningKey, VerifyingKey, KEYPAIR_LENGTH,
+    PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
+};
 
 // "\x0c\x04\x01" -- form feed, end of text, start of header
 // "ed25519ph" -- used algorithm
@@ -68,3 +76,18 @@ pub const GZIP_END: &[u8; 14] = &[
 
 /// Total overhead the signature block in a signed .tar.gz file excluding signature data
 pub const GZIP_EXTRA: usize = GZIP_START.len() + GZIP_END.len() + u64::BITS as usize / 4;
+
+/// Maximum number of bytes the encoded signatures may have
+///
+/// This number equates to 1022 signatures in a `.zip` file, and 767 signatures in `.tar.gz` file.
+pub const BUF_LIMIT: usize = 1 << 16; // 64 kiB
+
+/// Calculate the hash of an input file
+pub fn prehash<I>(input: &mut I) -> std::io::Result<Sha512>
+where
+    I: ?Sized + Read,
+{
+    let mut prehashed_message = Sha512::new();
+    let _: u64 = copy(input, &mut prehashed_message)?;
+    Ok(prehashed_message)
+}

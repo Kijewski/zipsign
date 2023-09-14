@@ -15,34 +15,40 @@ cargo install --git https://github.com/Kijewski/zipsign
     $ zipsign gen-key priv.key pub.key
 
     # ZIP a file and list the content of the ZIP file:
-    $ 7z a Cargo.lock.zip Cargo.lock
-    $ 7z l Cargo.lock.zip
+    $ zip Cargo.lock.zip Cargo.lock
+    $ unzip -l Cargo.lock.zip
     Cargo.lock
 
     # Sign the ZIP file:
     $ zipsign sign zip -o Cargo.lock.signed.zip Cargo.lock.zip priv.key
-    $ 7z l Cargo.lock.signed.zip
+    $ mv Cargo.lock.signed.zip Cargo.lock.zip
+    $ unzip -l Cargo.lock.zip
     Cargo.lock
 
     # Verify that the generated signature is valid:
-    $ zipsign verify zip Cargo.lock.signed.zip pub.key
+    $ zipsign verify zip Cargo.lock.zip pub.key
     OK
     ```
 
 * .tar:
 
     ```sh
+    # Generate key pair:
+    $ zipsign gen-key priv.key pub.key
+
+    # TAR a file and list the content of the ZIP file:
     $ tar czf Cargo.lock.tgz Cargo.lock
     $ tar tzf Cargo.lock.tgz
     Cargo.lock
 
     # Sign the .tar.gz file:
     $ zipsign sign tar -o Cargo.lock.signed.tgz Cargo.lock.tgz priv.key
+    $ mv Cargo.lock.signed.tgz Cargo.lock.tgz
     $ tar tzf Cargo.lock.tgz
     Cargo.lock
 
     # Verify that the generated signature is valid:
-    $ zipsign verify tar Cargo.lock.signed.tgz pub.key
+    $ zipsign verify tar Cargo.lock.tgz pub.key
     OK
     ```
 
@@ -54,6 +60,11 @@ Arguments:
 
 * `PRIVATE_KEY`:    Private key file to create
 * `VERIFYING_KEY`:  Verifying key (public key) file to create
+
+Options:
+
+* `-e`, `--extract`: Don't create new key pair, but extract public key from private key
+* `-f`, `--force`: Overwrite output file if it exists
 
 ### Sign a .zip or .tar.gz file
 
@@ -67,7 +78,8 @@ Subcommands:
 Options:
 
 * `-o`, `--output <OUTPUT>`:   Signed file to generate
-* `-c`, `--context <CONTEXT>`: Arbitrary string used to salt the input, defaults to file name of `<OUTPUT>`
+* `-c`, `--context <CONTEXT>`: Arbitrary string used to salt the input, defaults to file name of `<INPUT>`
+* `-f`, `--force`: Overwrite output file if it exists
 
 Arguments:
 

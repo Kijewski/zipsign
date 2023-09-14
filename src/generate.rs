@@ -15,9 +15,12 @@ pub(crate) struct Cli {
     private_key: PathBuf,
     /// Verifying key (public key) file to create
     verifying_key: PathBuf,
-    /// Read from `<PRIVATE_KEY>` to write `<VERIFYING_KEY>`
+    /// Don't create new key pair, but extract public key from private key
     #[arg(long, short = 'e')]
     extract: bool,
+    /// Overwrite output files if they exists
+    #[arg(long, short = 'f')]
+    force: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -54,8 +57,9 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
         let result = OpenOptions::new()
             .write(true)
             .create(true)
+            .create_new(!args.force)
             .truncate(true)
-            .mode(0o400)
+            .mode(0o600)
             .open(&args.private_key);
         let mut f = match result {
             Ok(f) => f,
@@ -69,8 +73,8 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let result = OpenOptions::new()
         .write(true)
         .create(true)
+        .create_new(!args.force)
         .truncate(true)
-        .mode(0o444)
         .open(&args.verifying_key);
     let mut f = match result {
         Ok(f) => f,

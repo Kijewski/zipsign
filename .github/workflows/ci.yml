@@ -35,7 +35,7 @@ jobs:
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
         with:
-          key: check
+          key: clippy
           toolchain: ${{ matrix.toolchain }}
           components: clippy
 
@@ -88,7 +88,7 @@ jobs:
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
         with:
-          key: doc
+          key: package
           toolchain: stable
 
       - run: cargo package --package zipsign
@@ -108,3 +108,48 @@ jobs:
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  api-powerset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: api-powerset
+          toolchain: stable
+
+      - name: Install hack
+        run: curl --location --silent --show-error --fail https://github.com/cargo-bins/cargo-quickinstall/releases/download/cargo-hack-0.6.7/cargo-hack-0.6.7-x86_64-unknown-linux-gnu.tar.gz | tar -xzvvf - -C $HOME/.cargo/bin
+
+      - name: Check powerset
+        run: cargo hack build --feature-powerset --package zipsign-api
+        env:
+          RUSTFLAGS: "-D warnings"
+
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: execute
+          toolchain: stable
+
+      - name: Execute example
+        run: |
+          cargo install --path .
+          zipsign gen-key priv.key pub.key
+
+          tar czf Cargo.lock.tgz Cargo.lock
+          zipsign sign tar -o Cargo.lock.signed.tgz Cargo.lock.tgz priv.key
+          mv Cargo.lock.signed.tgz Cargo.lock.tgz
+          zipsign verify tar Cargo.lock.tgz pub.key
+
+          zip Cargo.lock.zip Cargo.lock
+          zipsign sign zip -o Cargo.lock.signed.zip Cargo.lock.zip priv.key
+          mv Cargo.lock.signed.zip Cargo.lock.zip
+          zipsign verify zip Cargo.lock.zip pub.key
