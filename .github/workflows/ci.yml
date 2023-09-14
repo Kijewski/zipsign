@@ -154,10 +154,10 @@ jobs:
 
           tar czf Cargo.lock.tgz Cargo.lock
           zipsign sign tar -o Cargo.lock.signed.tgz Cargo.lock.tgz priv.key
-          mv Cargo.lock.signed.tgz Cargo.lock.tgz
+          mv -f Cargo.lock.signed.tgz Cargo.lock.tgz
           zipsign verify tar Cargo.lock.tgz pub.key
 
           zip Cargo.lock.zip Cargo.lock
           zipsign sign zip -o Cargo.lock.signed.zip Cargo.lock.zip priv.key
-          mv Cargo.lock.signed.zip Cargo.lock.zip
+          mv -f Cargo.lock.signed.zip Cargo.lock.zip
           zipsign verify zip Cargo.lock.zip pub.key
