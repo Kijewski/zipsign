@@ -26,3 +26,7 @@ sign-zip = ["sign", "dep:zip"]
 
 tar = ["sign-tar", "verify-tar"]
 zip = ["sign-zip", "verify-zip"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

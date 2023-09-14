@@ -92,7 +92,7 @@ where
     Ok(prehashed_message)
 }
 
-/// A collection of all error this library can return
+/// A collection of all errors this library can return
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
