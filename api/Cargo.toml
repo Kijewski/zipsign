@@ -1,10 +1,11 @@
 [package]
 name = "zipsign-api"
-description = "Verify files signed with `zipsign`"
+description = "Sign and verify `.zip` and `.tar.gz` files with an ed25519 signing key"
 version = "0.1.0-a.0"
 edition = "2021"
 authors = ["René Kijewski <crates.io@k6i.de>"]
-license = "MIT OR Apache-2.0 WITH LLVM-exception"
+repository = "https://github.com/Kijewski/zipsign"
+license = "Apache-2.0 WITH LLVM-exception"
 
 [dependencies]
 base64 = { workspace = true, optional = true }
