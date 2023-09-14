@@ -104,11 +104,10 @@ jobs:
           key: audit
           toolchain: stable
 
-      - name: Install cargo-quickinstall
-        run: curl --location --silent --show-error --fail https://github.com/cargo-bins/cargo-quickinstall/releases/download/cargo-binstall-1.3.0/cargo-binstall-1.3.0-x86_64-unknown-linux-gnu.tar.gz | tar -xzvvf - -C $HOME/.cargo/bin
-
       - name: Install cargo-audit
-        run: cargo binstall --no-confirm cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
 
       - name: Run audit
         run: cargo audit --deny warnings
@@ -124,11 +123,10 @@ jobs:
           key: api-powerset
           toolchain: stable
 
-      - name: Install cargo-quickinstall
-        run: curl --location --silent --show-error --fail https://github.com/cargo-bins/cargo-quickinstall/releases/download/cargo-binstall-1.3.0/cargo-binstall-1.3.0-x86_64-unknown-linux-gnu.tar.gz | tar -xzvvf - -C $HOME/.cargo/bin
-
       - name: Install cargo-hack
-        run: cargo binstall --no-confirm cargo-hack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
 
       - name: Check powerset
         run: cargo hack check --feature-powerset --package zipsign-api
