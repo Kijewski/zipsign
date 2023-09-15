@@ -5,8 +5,8 @@ use std::io::{BufReader, BufWriter, IoSlice, Read, Seek, SeekFrom, Write};
 use zip::result::ZipError;
 use zip::{ZipArchive, ZipWriter};
 
-use super::{gather_signature_data, prehashed_message, GatherSignatureDataError};
-use crate::{SignatureCountLeInt, SigningKey, BUF_LIMIT, HEADER_SIZE, SIGNATURE_LENGTH};
+use super::{gather_signature_data, GatherSignatureDataError};
+use crate::{prehash, SignatureCountLeInt, SigningKey, BUF_LIMIT, HEADER_SIZE, SIGNATURE_LENGTH};
 
 /// An error returned by [`copy_and_sign_zip()`]
 #[derive(Debug, thiserror::Error)]
@@ -70,7 +70,7 @@ where
     let _ = output
         .seek(SeekFrom::Start(signature_bytes.try_into().unwrap()))
         .map_err(SignZipError::OutputSeek)?;
-    let prehashed_message = prehashed_message(output).map_err(SignZipError::OutputRead)?;
+    let prehashed_message = prehash(output).map_err(SignZipError::OutputRead)?;
     let buf =
         gather_signature_data(keys, &prehashed_message, context).map_err(SignZipError::Sign)?;
 

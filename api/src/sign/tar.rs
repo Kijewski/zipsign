@@ -6,9 +6,10 @@ use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use ed25519_dalek::SIGNATURE_LENGTH;
 
-use super::{gather_signature_data, prehashed_message, GatherSignatureDataError};
+use super::{gather_signature_data, GatherSignatureDataError};
 use crate::{
-    SignatureCountLeInt, SigningKey, BUF_LIMIT, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE,
+    prehash, SignatureCountLeInt, SigningKey, BUF_LIMIT, GZIP_END, GZIP_EXTRA, GZIP_START,
+    HEADER_SIZE,
 };
 
 /// An error returned by [`copy_and_sign_tar()`]
@@ -57,7 +58,7 @@ where
     }
 
     // gather signature
-    let prehashed_message = prehashed_message(input).map_err(SignTarError::InputRead)?;
+    let prehashed_message = prehash(input).map_err(SignTarError::InputRead)?;
     let buf =
         gather_signature_data(keys, &prehashed_message, context).map_err(SignTarError::Sign)?;
     let buf = BASE64_STANDARD.encode(buf);

@@ -7,14 +7,14 @@ mod tar;
 #[cfg(feature = "sign-zip")]
 mod zip;
 
-use std::io::{copy, Read};
+use std::io::Read;
 
 #[cfg(feature = "sign-tar")]
 pub use self::tar::{copy_and_sign_tar, SignTarError};
 #[cfg(feature = "sign-zip")]
 pub use self::zip::{copy_and_sign_zip, SignZipError};
 use crate::{
-    Digest, Sha512, SignatureCountLeInt, SignatureError, SigningKey, BUF_LIMIT, HEADER_SIZE,
+    Sha512, SignatureCountLeInt, SignatureError, SigningKey, BUF_LIMIT, HEADER_SIZE,
     KEYPAIR_LENGTH, MAGIC_HEADER, SIGNATURE_LENGTH,
 };
 
@@ -60,16 +60,6 @@ where
             .cmp(r.verifying_key().as_bytes())
     });
     Ok(keys)
-}
-
-/// Hash an input to be signed later
-pub fn prehashed_message<I>(input: &mut I) -> Result<Sha512, std::io::Error>
-where
-    I: ?Sized + Read,
-{
-    let mut prehashed_message = Sha512::new();
-    let _: u64 = copy(input, &mut prehashed_message)?;
-    Ok(prehashed_message)
 }
 
 /// An error returned by [`gather_signature_data()`]
