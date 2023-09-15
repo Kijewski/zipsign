@@ -26,8 +26,7 @@ cargo install --git https://github.com/Kijewski/zipsign
     Cargo.lock
 
     # Sign the ZIP file:
-    $ zipsign sign zip -o Cargo.lock.signed.zip Cargo.lock.zip priv.key
-    $ mv Cargo.lock.signed.zip Cargo.lock.zip
+    $ zipsign sign zip Cargo.lock.zip priv.key
     $ unzip -l Cargo.lock.zip
     Cargo.lock
 
@@ -48,8 +47,7 @@ cargo install --git https://github.com/Kijewski/zipsign
     Cargo.lock
 
     # Sign the .tar.gz file:
-    $ zipsign sign tar -o Cargo.lock.signed.tgz Cargo.lock.tgz priv.key
-    $ mv Cargo.lock.signed.tgz Cargo.lock.tgz
+    $ zipsign sign tar Cargo.lock.tgz priv.key
     $ tar tzf Cargo.lock.tgz
     Cargo.lock
 
@@ -74,7 +72,7 @@ Options:
 
 ### Sign a .zip or .tar.gz file
 
-Usage: `zipsign sign [zip|tar] -o <SIGNED_FILE> <INPUT> <KEYS>...`
+Usage: `zipsign sign [zip|tar] [-o <OUTPUT>] <INPUT> <KEYS>...`
 
 Subcommands:
 
@@ -83,7 +81,7 @@ Subcommands:
 
 Options:
 
-* `-o`, `--output <OUTPUT>`:   Signed file to generate
+* `-o`, `--output <OUTPUT>`:   Signed file to generate (if omitted, the input is overwritten)
 * `-c`, `--context <CONTEXT>`: Arbitrary string used to salt the input, defaults to file name of `<INPUT>`
 * `-f`, `--force`: Overwrite output file if it exists
 

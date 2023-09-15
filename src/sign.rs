@@ -1,8 +1,9 @@
-use std::fs::{File, OpenOptions};
+use std::fs::{rename, File};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
+use normalize_path::NormalizePath;
 use zipsign_api::prehash;
 use zipsign_api::sign::{
     copy_and_sign_tar, copy_and_sign_zip, gather_signature_data, read_signing_keys,
@@ -51,9 +52,9 @@ enum ArchiveKind {
 struct CommonArgs {
     /// Input file to sign
     input: PathBuf,
-    /// Signed file to generate
+    /// Signed file to generate (if omitted, the input is overwritten)
     #[arg(long, short = 'o')]
-    output: PathBuf,
+    output: Option<PathBuf>,
     /// One or more files containing private keys
     #[arg(required = true)]
     keys: Vec<PathBuf>,
@@ -75,14 +76,16 @@ pub(crate) enum Error {
     InputOpen(#[source] std::io::Error),
     #[error("could not read input")]
     InputRead(#[source] std::io::Error),
-    #[error("could not open or create output file")]
-    OutputOpen(#[source] std::io::Error),
+    #[error("could not rename output file")]
+    OutputRename(#[source] std::io::Error),
     #[error("could not write to output")]
     OutputWrite(#[source] std::io::Error),
     #[error("could not read signing keys")]
     ReadSigningKeys(#[from] ReadSigningKeysError),
     #[error("could not copy and sign the input")]
     Tar(#[from] SignTarError),
+    #[error("could not create temporary file in output directory")]
+    Tempfile(#[source] std::io::Error),
     #[error("could not copy and sign the input")]
     Zip(#[from] SignZipError),
 }
@@ -95,28 +98,31 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let keys = args.keys.into_iter().map(File::open);
     let keys = read_signing_keys(keys)?;
 
-    let mut input = File::open(&args.input).map_err(Error::InputOpen)?;
-    let mut output = OpenOptions::new()
-        .create(true)
-        .create_new(!args.force)
-        .read(true)
-        .write(true)
-        .truncate(true)
-        .open(&args.output)
-        .map_err(Error::OutputOpen)?;
+    let output_path = args.output.as_deref().unwrap_or(&args.input).normalize();
+    let output_dir = output_path.parent().unwrap_or(Path::new("."));
+    let mut output_file = tempfile::Builder::new()
+        .prefix(".zipsign.")
+        .suffix(".tmp")
+        .tempfile_in(output_dir)
+        .map_err(Error::Tempfile)?;
 
+    let mut input = File::open(&args.input).map_err(Error::InputOpen)?;
     match kind {
         ArchiveKind::Separate => {
             let prehashed_message = prehash(&mut input).map_err(Error::InputRead)?;
             let data = gather_signature_data(&keys, &prehashed_message, Some(context))?;
-            output.write_all(&data).map_err(Error::OutputWrite)?;
+            output_file.write_all(&data).map_err(Error::OutputWrite)?;
         },
         ArchiveKind::Zip => {
-            copy_and_sign_zip(&mut input, &mut output, &keys, Some(context))?;
+            copy_and_sign_zip(&mut input, &mut output_file, &keys, Some(context))?;
         },
         ArchiveKind::Tar => {
-            copy_and_sign_tar(&mut input, &mut output, &keys, Some(context))?;
+            copy_and_sign_tar(&mut input, &mut output_file, &keys, Some(context))?;
         },
     }
+    // drop input so it can be overwritten input=output
+    drop(input);
+
+    rename(output_file.into_temp_path(), output_path).map_err(Error::OutputRename)?;
     Ok(())
 }

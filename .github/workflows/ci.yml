@@ -181,13 +181,9 @@ jobs:
           zipsign gen-key priv.key pub.key
 
           tar czf Cargo.lock.tgz Cargo.lock
-          zipsign sign tar -o Cargo.lock.signed.tgz Cargo.lock.tgz priv.key
-          rm Cargo.lock.tgz
-          mv Cargo.lock.signed.tgz Cargo.lock.tgz
+          zipsign sign tar Cargo.lock.tgz priv.key
           zipsign verify tar Cargo.lock.tgz pub.key
 
           zip Cargo.lock.zip Cargo.lock
-          zipsign sign zip -o Cargo.lock.signed.zip Cargo.lock.zip priv.key
-          rm Cargo.lock.zip
-          mv Cargo.lock.signed.zip Cargo.lock.zip
+          zipsign sign zip Cargo.lock.zip priv.key
           zipsign verify zip Cargo.lock.zip pub.key

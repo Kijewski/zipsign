@@ -16,8 +16,10 @@ default-members = [".", "api"]
 base64 = "0.21"
 clap = { version = "4", features = ["derive"] }
 ed25519-dalek = { version = "2", features = ["digest"] }
+normalize-path = "0.2"
 pretty-error-debug = "0.3"
 rand_core = { version = "0.6", features = ["getrandom"] }
+tempfile = "3"
 thiserror = "1"
 zip = { version = "0.6", default-features = false }
 
@@ -30,8 +32,10 @@ features = ["verify-tar", "verify-zip", "sign-tar", "sign-zip"]
 [dependencies]
 clap.workspace = true
 ed25519-dalek = { workspace = true, features = ["rand_core"] }
+normalize-path.workspace = true
 pretty-error-debug.workspace = true
 rand_core.workspace = true
+tempfile.workspace = true
 thiserror.workspace = true
 zipsign-api.workspace = true
 
