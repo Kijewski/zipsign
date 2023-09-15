@@ -70,6 +70,8 @@ struct CommonArgs {
 pub(crate) enum Error {
     #[error("could not determine `context` string by the input name")]
     Context(#[from] ImplicitContextError),
+    #[error("output exists, use `--force` allow replacing a file")]
+    Exists,
     #[error("could not gather signature data")]
     GatherSignatureData(#[from] GatherSignatureDataError),
     #[error("could not open input file")]
@@ -99,6 +101,9 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let keys = read_signing_keys(keys)?;
 
     let output_path = args.output.as_deref().unwrap_or(&args.input).normalize();
+    if args.output.is_some() && !args.force {
+        return Err(Error::Exists);
+    }
     let output_dir = output_path.parent().unwrap_or(Path::new("."));
     let mut output_file = tempfile::Builder::new()
         .prefix(".zipsign.")
@@ -120,7 +125,7 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
             copy_and_sign_tar(&mut input, &mut output_file, &keys, Some(context))?;
         },
     }
-    // drop input so it can be overwritten input=output
+    // drop input so it can be overwritten if input=output
     drop(input);
 
     rename(output_file.into_temp_path(), output_path).map_err(Error::OutputRename)?;
