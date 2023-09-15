@@ -7,10 +7,10 @@ use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 
 use super::{find_match, NoMatch};
-use crate::{
-    prehash, Sha512, Signature, SignatureCountLeInt, SignatureError, VerifyingKey, BUF_LIMIT,
-    GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER, SIGNATURE_LENGTH,
+use crate::constants::{
+    SignatureCountLeInt, BUF_LIMIT, GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER,
 };
+use crate::{prehash, Sha512, Signature, SignatureError, VerifyingKey, SIGNATURE_LENGTH};
 
 /// An error returned by [`verify_tar()`]
 #[derive(Debug, thiserror::Error)]

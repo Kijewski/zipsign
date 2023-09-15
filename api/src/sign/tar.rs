@@ -7,10 +7,10 @@ use base64::Engine;
 use ed25519_dalek::SIGNATURE_LENGTH;
 
 use super::{gather_signature_data, GatherSignatureDataError};
-use crate::{
-    prehash, SignatureCountLeInt, SigningKey, BUF_LIMIT, GZIP_END, GZIP_EXTRA, GZIP_START,
-    HEADER_SIZE,
+use crate::constants::{
+    SignatureCountLeInt, BUF_LIMIT, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE,
 };
+use crate::{prehash, SigningKey};
 
 /// An error returned by [`copy_and_sign_tar()`]
 #[derive(Debug, thiserror::Error)]

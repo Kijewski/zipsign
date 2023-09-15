@@ -13,10 +13,8 @@ use std::io::Read;
 pub use self::tar::{copy_and_sign_tar, SignTarError};
 #[cfg(feature = "sign-zip")]
 pub use self::zip::{copy_and_sign_zip, SignZipError};
-use crate::{
-    Sha512, SignatureCountLeInt, SignatureError, SigningKey, BUF_LIMIT, HEADER_SIZE,
-    KEYPAIR_LENGTH, MAGIC_HEADER, SIGNATURE_LENGTH,
-};
+use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
+use crate::{Sha512, SignatureError, SigningKey, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 
 /// An error returned by [`read_signing_keys()`]
 #[derive(Debug, thiserror::Error)]

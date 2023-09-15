@@ -13,10 +13,8 @@ use std::io::Read;
 pub use self::tar::{verify_tar, VerifyTarError};
 #[cfg(feature = "verify-zip")]
 pub use self::zip::{verify_zip, VerifyZipError};
-use crate::{
-    Sha512, Signature, SignatureCountLeInt, SignatureError, VerifyingKey, BUF_LIMIT, HEADER_SIZE,
-    MAGIC_HEADER, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
-};
+use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
+use crate::{Sha512, Signature, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
 
 /// An error returned by [`collect_keys()`]
 #[derive(Debug, thiserror::Error)]

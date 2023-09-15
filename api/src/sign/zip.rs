@@ -6,7 +6,8 @@ use zip::result::ZipError;
 use zip::{ZipArchive, ZipWriter};
 
 use super::{gather_signature_data, GatherSignatureDataError};
-use crate::{prehash, SignatureCountLeInt, SigningKey, BUF_LIMIT, HEADER_SIZE, SIGNATURE_LENGTH};
+use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE};
+use crate::{prehash, SigningKey, SIGNATURE_LENGTH};
 
 /// An error returned by [`copy_and_sign_zip()`]
 #[derive(Debug, thiserror::Error)]
@@ -52,7 +53,7 @@ pub fn copy_and_sign_zip<I, O>(
 ) -> Result<(), SignZipError>
 where
     I: ?Sized + Read + Seek,
-    O: ?Sized + Read + Write + Seek,
+    O: ?Sized + Read + Seek + Write,
 {
     if keys.len() > SignatureCountLeInt::MAX as usize {
         return Err(SignZipError::TooManyKeys);
