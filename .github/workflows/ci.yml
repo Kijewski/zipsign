@@ -184,6 +184,7 @@ jobs:
           zipsign sign tar Cargo.lock.tgz priv.key
           zipsign verify tar Cargo.lock.tgz pub.key
 
-          zip Cargo.lock.zip Cargo.lock
+          # Windows doesn't have a "zip" command
+          jar -cfM Cargo.lock.zip Cargo.lock
           zipsign sign zip Cargo.lock.zip priv.key
           zipsign verify zip Cargo.lock.zip pub.key
