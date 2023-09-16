@@ -12,39 +12,30 @@ use crate::constants::{
 };
 use crate::{prehash, Sha512, Signature, SignatureError, VerifyingKey, SIGNATURE_LENGTH};
 
-/// An error returned by [`verify_tar()`]
-#[derive(Debug, thiserror::Error)]
-pub enum VerifyTarError {
-    /// The input contained invalid base64 encoded data
-    #[error("the input contained invalid base64 encoded data")]
-    Base64,
-    /// The input contained no signatures
-    #[error("the input contained no signatures")]
-    Empty,
-    /// The expected last GZIP block was missing or corrupted
-    #[error("the expected last GZIP block was missing or corrupted")]
-    Gzip,
-    /// The encoded length did not fit the expected length
-    #[error("the encoded length did not fit the expected length")]
-    LengthMismatch,
-    /// The expected magic header was missing or corrupted
-    #[error("the expected magic header was missing or corrupted")]
-    MagicHeader,
-    /// No matching key/signature pair found
-    #[error(transparent)]
-    NoMatch(NoMatch),
-    /// Could not read input
-    #[error("could not read input")]
-    Read(#[source] std::io::Error),
-    /// Could not seek inside the input
-    #[error("could not seek inside the input")]
-    Seek(#[source] std::io::Error),
-    /// The input contained an illegal signature
-    #[error("the input contained an illegal signature at index #{1}")]
-    Signature(#[source] SignatureError, usize),
-    /// Too many signatures in input
-    #[error("too many signatures in input")]
-    TooManySignatures,
+crate::Error! {
+    /// An error returned by [`verify_tar()`]
+    pub struct VerifyTarError(Error) {
+        #[error("the input contained invalid base64 encoded data")]
+        Base64,
+        #[error("the input contained no signatures")]
+        Empty,
+        #[error("the expected last GZIP block was missing or corrupted")]
+        Gzip,
+        #[error("the encoded length did not fit the expected length")]
+        LengthMismatch,
+        #[error("the expected magic header was missing or corrupted")]
+        MagicHeader,
+        #[error(transparent)]
+        NoMatch(NoMatch),
+        #[error("could not read input")]
+        Read(#[source] std::io::Error),
+        #[error("could not seek inside the input")]
+        Seek(#[source] std::io::Error),
+        #[error("the input contained an illegal signature at index #{1}")]
+        Signature(#[source] SignatureError, usize),
+        #[error("too many signatures in input")]
+        TooManySignatures,
+    }
 }
 
 /// Find the index of the first [`VerifyingKey`] that matches the a signature in a signed `.tar.gz`
@@ -58,8 +49,8 @@ where
     I: ?Sized + Read + Seek,
 {
     let (prehashed_message, signatures) = read_tar(input)?;
-    let (key_idx, _) = find_match(keys, &signatures, &prehashed_message, context)
-        .map_err(VerifyTarError::NoMatch)?;
+    let (key_idx, _) =
+        find_match(keys, &signatures, &prehashed_message, context).map_err(Error::NoMatch)?;
     Ok(key_idx)
 }
 
@@ -73,8 +64,8 @@ fn read_tar<I: ?Sized + Read + Seek>(
     let signatures = read_signatures(data_start, data_len, input)?;
 
     // pre-hash file
-    input.rewind().map_err(VerifyTarError::Seek)?;
-    let prehashed_message = prehash(&mut input.take(data_start)).map_err(VerifyTarError::Read)?;
+    input.rewind().map_err(Error::Seek)?;
+    let prehashed_message = prehash(&mut input.take(data_start)).map_err(Error::Read)?;
 
     Ok((prehashed_message, signatures))
 }
@@ -86,29 +77,29 @@ where
     let mut tail = [0; u64::BITS as usize / 4 + GZIP_END.len()];
     let data_end = input
         .seek(SeekFrom::End(-(tail.len() as i64)))
-        .map_err(VerifyTarError::Seek)?;
+        .map_err(Error::Seek)?;
 
-    input.read_exact(&mut tail).map_err(VerifyTarError::Read)?;
+    input.read_exact(&mut tail).map_err(Error::Read)?;
     if tail[u64::BITS as usize / 4..] != *GZIP_END {
-        return Err(VerifyTarError::Gzip);
+        return Err(Error::Gzip.into());
     }
     let Ok(gzip_start) = std::str::from_utf8(&tail[..16]) else {
-        return Err(VerifyTarError::Gzip);
+        return Err(Error::Gzip.into());
     };
     let Ok(gzip_start) = u64::from_str_radix(gzip_start, 16) else {
-        return Err(VerifyTarError::Gzip);
+        return Err(Error::Gzip.into());
     };
     let Some(data_start) = gzip_start.checked_add(10) else {
-        return Err(VerifyTarError::Gzip);
+        return Err(Error::Gzip.into());
     };
     let Some(data_len) = data_end.checked_sub(data_start) else {
-        return Err(VerifyTarError::Gzip);
+        return Err(Error::Gzip.into());
     };
     let Ok(data_len) = usize::try_from(data_len) else {
-        return Err(VerifyTarError::Gzip);
+        return Err(Error::Gzip.into());
     };
     if data_len > BUF_LIMIT {
-        return Err(VerifyTarError::TooManySignatures);
+        return Err(Error::TooManySignatures.into());
     }
 
     Ok((gzip_start, data_len + GZIP_START.len()))
@@ -124,22 +115,22 @@ where
 {
     let _: u64 = input
         .seek(SeekFrom::Start(data_start))
-        .map_err(VerifyTarError::Read)?;
+        .map_err(Error::Read)?;
 
     let mut data = vec![0; data_len];
-    input.read_exact(&mut data).map_err(VerifyTarError::Read)?;
+    input.read_exact(&mut data).map_err(Error::Read)?;
 
     if data[..GZIP_START.len()] != *GZIP_START {
-        return Err(VerifyTarError::Gzip);
+        return Err(Error::Gzip.into());
     }
     let Ok(data) = BASE64_STANDARD.decode(&data[GZIP_START.len()..]) else {
-        return Err(VerifyTarError::Base64);
+        return Err(Error::Base64.into());
     };
     if data.len() < HEADER_SIZE {
-        return Err(VerifyTarError::MagicHeader);
+        return Err(Error::MagicHeader.into());
     }
     if data[..MAGIC_HEADER.len()] != *MAGIC_HEADER {
-        return Err(VerifyTarError::MagicHeader);
+        return Err(Error::MagicHeader.into());
     }
 
     let signature_count = data[MAGIC_HEADER.len()..][..size_of::<SignatureCountLeInt>()]
@@ -147,17 +138,16 @@ where
         .unwrap();
     let signature_count = SignatureCountLeInt::from_le_bytes(signature_count) as usize;
     if signature_count == 0 {
-        return Err(VerifyTarError::Empty);
+        return Err(Error::Empty.into());
     }
     if data.len() != HEADER_SIZE + signature_count * SIGNATURE_LENGTH {
-        return Err(VerifyTarError::LengthMismatch);
+        return Err(Error::LengthMismatch.into());
     }
 
-    data[HEADER_SIZE..]
+    let signatures = data[HEADER_SIZE..]
         .chunks_exact(SIGNATURE_LENGTH)
         .enumerate()
-        .map(|(idx, bytes)| {
-            Signature::from_slice(bytes).map_err(|err| VerifyTarError::Signature(err, idx))
-        })
-        .collect::<Result<Vec<_>, _>>()
+        .map(|(idx, bytes)| Signature::from_slice(bytes).map_err(|err| Error::Signature(err, idx)))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(signatures)
 }

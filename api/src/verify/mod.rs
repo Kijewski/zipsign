@@ -14,18 +14,16 @@ pub use self::zip::{verify_zip, VerifyZipError};
 use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
 use crate::{Sha512, Signature, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
 
-/// An error returned by [`collect_keys()`]
-#[derive(Debug, thiserror::Error)]
-pub enum CollectKeysError {
-    /// The input was empty
-    #[error("the input was empty")]
-    Empty,
-    /// Could not read a key
-    #[error("could not read key #{1}")]
-    Io(#[source] std::io::Error, usize),
-    /// Input contained an illegal key
-    #[error("input contained an illegal key at #{1}")]
-    Signature(#[source] SignatureError, usize),
+crate::Error! {
+    /// An error returned by [`collect_keys()`]
+    pub struct CollectKeysError(KeysError) {
+        #[error("the input was empty")]
+        Empty,
+        #[error("could not read key #{1}")]
+        Io(#[source] std::io::Error, usize),
+        #[error("input contained an illegal key at #{1}")]
+        Signature(#[source] SignatureError, usize),
+    }
 }
 
 /// Convert a slice of key bytes into a [`Vec`] of [`VerifyingKey`]s.
@@ -37,12 +35,12 @@ where
         .into_iter()
         .enumerate()
         .map(|(idx, key)| {
-            let key = key.map_err(|err| CollectKeysError::Io(err, idx))?;
-            VerifyingKey::from_bytes(&key).map_err(|err| CollectKeysError::Signature(err, idx))
+            let key = key.map_err(|err| KeysError::Io(err, idx))?;
+            VerifyingKey::from_bytes(&key).map_err(|err| KeysError::Signature(err, idx))
         })
         .collect::<Result<Vec<_>, _>>()?;
     if keys.is_empty() {
-        return Err(CollectKeysError::Empty);
+        return Err(KeysError::Empty.into());
     }
     Ok(keys)
 }
@@ -52,7 +50,7 @@ where
 #[error("no matching key/signature pair found")]
 pub struct NoMatch;
 
-/// Iterate [signatures][Signature] and [keys][VerifyingKey] and return the indices of the first
+/// Iterate signatures and keys, and return the indices of the first match
 /// match
 pub fn find_match(
     keys: &[VerifyingKey],
@@ -73,21 +71,18 @@ pub fn find_match(
     Err(NoMatch)
 }
 
-/// An error returned by [`read_signatures()`]
-#[derive(Debug, thiserror::Error)]
-pub enum ReadSignaturesError {
-    /// The input contained no signatures
-    #[error("the input contained no signatures")]
-    Empty,
-    /// Could not read signatures
-    #[error("could not read signatures")]
-    Read(#[source] std::io::Error),
-    /// The expected magic header was missing or corrupted
-    #[error("the expected magic header was missing or corrupted")]
-    MagicHeader,
-    /// Input contained an illegal signature
-    #[error("input contained an illegal signature at #{1}")]
-    Signature(#[source] SignatureError, usize),
+crate::Error! {
+    /// An error returned by [`read_signatures()`]
+    pub struct ReadSignaturesError(SignaturesError) {
+        #[error("the input contained no signatures")]
+        Empty,
+        #[error("could not read signatures")]
+        Read(#[source] std::io::Error),
+        #[error("the expected magic header was missing or corrupted")]
+        MagicHeader,
+        #[error("input contained an illegal signature at #{1}")]
+        Signature(#[source] SignatureError, usize),
+    }
 }
 
 /// Collect all signatures in a file
@@ -98,31 +93,31 @@ where
     let mut header = [0; HEADER_SIZE];
     input
         .read_exact(&mut header)
-        .map_err(ReadSignaturesError::Read)?;
+        .map_err(SignaturesError::Read)?;
     if header[..MAGIC_HEADER.len()] != *MAGIC_HEADER {
-        return Err(ReadSignaturesError::MagicHeader);
+        return Err(SignaturesError::MagicHeader.into());
     }
 
     let signature_count = header[MAGIC_HEADER.len()..].try_into().unwrap();
     let signature_count = SignatureCountLeInt::from_le_bytes(signature_count) as usize;
     if signature_count == 0 {
-        return Err(ReadSignaturesError::Empty);
+        return Err(SignaturesError::Empty.into());
     }
     let signature_bytes = signature_count * SIGNATURE_LENGTH;
     if signature_bytes > BUF_LIMIT {
-        return Err(ReadSignaturesError::MagicHeader);
+        return Err(SignaturesError::MagicHeader.into());
     }
 
     let mut signatures = vec![0; signature_bytes];
     input
         .read_exact(&mut signatures)
-        .map_err(ReadSignaturesError::Read)?;
+        .map_err(SignaturesError::Read)?;
 
     let signatures = signatures
         .chunks_exact(SIGNATURE_LENGTH)
         .enumerate()
         .map(|(idx, bytes)| {
-            Signature::from_slice(bytes).map_err(|err| ReadSignaturesError::Signature(err, idx))
+            Signature::from_slice(bytes).map_err(|err| SignaturesError::Signature(err, idx))
         })
         .collect::<Result<Vec<_>, _>>()?;
 

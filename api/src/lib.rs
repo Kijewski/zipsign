@@ -18,6 +18,7 @@
 #![warn(unused_extern_crates)]
 #![warn(unused_lifetimes)]
 #![warn(unused_results)]
+#![allow(clippy::enum_variant_names)]
 #![doc = include_str!("../README.md")]
 
 mod constants;
@@ -78,3 +79,59 @@ pub enum ZipsignError {
     /// An I/O occurred
     Io(#[from] std::io::Error),
 }
+
+macro_rules! Error {
+    (
+        $(#[$meta:meta])+
+        $vis:vis struct $outer:ident($inner:ident) { $(
+            $(#[$field_meta:meta])+
+            $field:ident $(( $(
+                $(#[$ty_meta:meta])*
+                $field_type:ty
+            ),+ $(,)? ))?
+        ),+ $(,)? }
+    ) => {
+        $(#[$meta])+
+        $vis struct $outer($inner);
+
+        #[derive(Debug, thiserror::Error)]
+        enum $inner { $(
+            $(#[$field_meta])+
+            $field $(( $(
+                $(#[$ty_meta])* $field_type,
+            )+ ))?,
+        )+ }
+
+        const _: () = {
+            impl std::fmt::Debug for $outer {
+                #[inline]
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    std::fmt::Debug::fmt(&self.0, f)
+                }
+            }
+
+            impl std::fmt::Display for $outer {
+                #[inline]
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    std::fmt::Display::fmt(&self.0, f)
+                }
+            }
+
+            impl From<$inner> for $outer {
+                #[inline]
+                fn from(value: $inner) -> Self {
+                    Self(value)
+                }
+            }
+
+            impl std::error::Error for $outer {
+                #[inline]
+                fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                    self.0.source()
+                }
+            }
+        };
+    };
+}
+
+pub(crate) use Error;
