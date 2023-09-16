@@ -1,6 +1,4 @@
-#![cfg_attr(docsrs, doc(cfg(feature = "sign")))]
-
-//! Common functions to sign a file
+//! Functions to sign a file
 
 #[cfg(feature = "sign-tar")]
 mod tar;

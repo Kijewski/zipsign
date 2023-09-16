@@ -1,6 +1,4 @@
-#![cfg_attr(docsrs, doc(cfg(feature = "verify")))]
-
-//! Common functions to verify a signed file
+//! Functions to verify a signed file
 
 #[cfg(feature = "verify-tar")]
 mod tar;

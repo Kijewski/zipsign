@@ -1,7 +1,7 @@
 [package]
 name = "zipsign-api"
 description = "Sign and verify `.zip` and `.tar.gz` files with an ed25519 signing key"
-version = "0.1.0-a.2"
+version = "0.1.0-a.3"
 edition = "2021"
 authors = ["René Kijewski <crates.io@k6i.de>"]
 repository = "https://github.com/Kijewski/zipsign"
@@ -16,13 +16,11 @@ zip = { workspace = true, optional = true }
 [features]
 default = ["tar", "zip"]
 
-verify = []
-verify-tar = ["verify", "dep:base64"]
-verify-zip = ["verify"]
+verify-tar = ["dep:base64"]
+verify-zip = []
 
-sign = []
-sign-tar = ["sign", "dep:base64"]
-sign-zip = ["sign", "dep:zip"]
+sign-tar = ["dep:base64"]
+sign-zip = ["dep:zip"]
 
 tar = ["sign-tar", "verify-tar"]
 zip = ["sign-zip", "verify-zip"]

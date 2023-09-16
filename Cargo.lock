@@ -552,9 +552,9 @@ checksum = "81cdd64d312baedb58e21336b31bc043b77e01cc99033ce76ef539f78e965ebc"
 
 [[package]]
 name = "syn"
-version = "2.0.34"
+version = "2.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88ec6cdb6a4c16306eccf52ccd8d492e4ab64705a15a5016acb205251001bf72"
+checksum = "59bf04c28bee9043ed9ea1e41afc0552288d3aba9c6efdd78903b802926f4879"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "zipsign"
-version = "0.1.0-a.2"
+version = "0.1.0-a.3"
 dependencies = [
  "clap",
  "ed25519-dalek",
@@ -749,7 +749,7 @@ dependencies = [
 
 [[package]]
 name = "zipsign-api"
-version = "0.1.0-a.2"
+version = "0.1.0-a.3"
 dependencies = [
  "base64",
  "ed25519-dalek",
