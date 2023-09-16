@@ -14,18 +14,16 @@ pub use self::zip::{copy_and_sign_zip, SignZipError};
 use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
 use crate::{Sha512, SignatureError, SigningKey, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 
-/// An error returned by [`read_signing_keys()`]
-#[derive(Debug, thiserror::Error)]
-pub enum ReadSigningKeysError {
-    /// Input did not contain a valid key
-    #[error("input #{1} did not contain a valid key")]
-    Construct(#[source] ed25519_dalek::ed25519::Error, usize),
-    /// No signing keys provided
-    #[error("no signing keys provided")]
-    Empty,
-    /// Could not read keys
-    #[error("could not read key in file #{1}")]
-    Read(#[source] std::io::Error, usize),
+crate::Error! {
+    /// An error returned by [`read_signing_keys()`]
+    pub struct ReadSigningKeysError(KeysError) {
+        #[error("input #{1} did not contain a valid key")]
+        Construct(#[source] ed25519_dalek::ed25519::Error, usize),
+        #[error("no signing keys provided")]
+        Empty,
+        #[error("could not read key in file #{1}")]
+        Read(#[source] std::io::Error, usize),
+    }
 }
 
 /// Read signing keys from an [`Iterator`] of [readable][Read] inputs
@@ -42,13 +40,12 @@ where
             let mut key = [0; KEYPAIR_LENGTH];
             input
                 .and_then(|mut input| input.read_exact(&mut key))
-                .map_err(|err| ReadSigningKeysError::Read(err, key_index))?;
-            SigningKey::from_keypair_bytes(&key)
-                .map_err(|err| ReadSigningKeysError::Construct(err, key_index))
+                .map_err(|err| KeysError::Read(err, key_index))?;
+            SigningKey::from_keypair_bytes(&key).map_err(|err| KeysError::Construct(err, key_index))
         })
         .collect::<Result<Vec<_>, _>>()?;
     if keys.is_empty() {
-        return Err(ReadSigningKeysError::Empty);
+        return Err(KeysError::Empty.into());
     }
     keys.sort_by(|l, r| {
         l.verifying_key()
@@ -58,18 +55,16 @@ where
     Ok(keys)
 }
 
-/// An error returned by [`gather_signature_data()`]
-#[derive(Debug, thiserror::Error)]
-pub enum GatherSignatureDataError {
-    /// No signing keys provided
-    #[error("no signing keys provided")]
-    Empty,
-    /// could not sign data
-    #[error("could not sign data with key #{1}")]
-    Signature(#[source] SignatureError, usize),
-    /// Too many signing keys provided
-    #[error("too many signing keys provided")]
-    TooManyKeys,
+crate::Error! {
+    /// An error returned by [`gather_signature_data()`]
+    pub struct GatherSignatureDataError(SignaturesError) {
+        #[error("no signing keys provided")]
+        Empty,
+        #[error("could not sign data with key #{1}")]
+        Signature(#[source] SignatureError, usize),
+        #[error("too many signing keys provided")]
+        TooManyKeys,
+    }
 }
 
 /// Sign a pre-hashed message with all provided signing keys, and return a signature block incl.
@@ -80,12 +75,12 @@ pub fn gather_signature_data(
     context: Option<&[u8]>,
 ) -> Result<Vec<u8>, GatherSignatureDataError> {
     if keys.is_empty() {
-        return Err(GatherSignatureDataError::Empty);
+        return Err(SignaturesError::Empty.into());
     }
 
     let signature_bytes = HEADER_SIZE + keys.len() * SIGNATURE_LENGTH;
     if signature_bytes > BUF_LIMIT {
-        return Err(GatherSignatureDataError::TooManyKeys);
+        return Err(SignaturesError::TooManyKeys.into());
     }
 
     let mut header = [0; HEADER_SIZE];
@@ -98,7 +93,7 @@ pub fn gather_signature_data(
     for (idx, key) in keys.iter().enumerate() {
         let signature = key
             .sign_prehashed(prehashed_message.clone(), context)
-            .map_err(|err| GatherSignatureDataError::Signature(err, idx))?;
+            .map_err(|err| SignaturesError::Signature(err, idx))?;
         buf.extend(signature.to_bytes());
     }
     Ok(buf)

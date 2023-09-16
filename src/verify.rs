@@ -123,7 +123,7 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
                 read_signatures(&mut File::open(signature).map_err(Error::SignaturesOpen)?)?;
             let prehashed_message = prehash(&mut input).map_err(Error::InputRead)?;
             let (key_idx, _) = find_match(&keys, &signatures, &prehashed_message, Some(context))
-                .map_err(VerifyTarError::NoMatch)?;
+                .map_err(Error::NoMatch)?;
             key_idx
         },
         ArchiveKind::Zip => verify_zip(&mut input, &keys, Some(context))?,

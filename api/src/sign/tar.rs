@@ -12,30 +12,24 @@ use crate::constants::{
 };
 use crate::{prehash, SigningKey};
 
-/// An error returned by [`copy_and_sign_tar()`]
-#[derive(Debug, thiserror::Error)]
-pub enum SignTarError {
-    /// Could not copy input to output
-    #[error("could not copy input to output")]
-    Copy(#[source] std::io::Error),
-    /// Could not read input
-    #[error("could not read input")]
-    InputRead(#[source] std::io::Error),
-    /// Could not seek in input
-    #[error("could not seek in input")]
-    InputSeek(#[source] std::io::Error),
-    /// Could not seek in output
-    #[error("could not seek in output")]
-    OutputSeek(#[source] std::io::Error),
-    /// Could not write output
-    #[error("could not write output")]
-    OutputWrite(#[source] std::io::Error),
-    /// Could not sign pre-hashed message
-    #[error("could not sign pre-hashed message")]
-    Sign(#[source] GatherSignatureDataError),
-    /// Too many keys
-    #[error("too many keys")]
-    TooManyKeys,
+crate::Error! {
+    /// An error returned by [`copy_and_sign_tar()`]
+    pub struct SignTarError(Error) {
+        #[error("could not copy input to output")]
+        Copy(#[source] std::io::Error),
+        #[error("could not read input")]
+        InputRead(#[source] std::io::Error),
+        #[error("could not seek in input")]
+        InputSeek(#[source] std::io::Error),
+        #[error("could not seek in output")]
+        OutputSeek(#[source] std::io::Error),
+        #[error("could not write output")]
+        OutputWrite(#[source] std::io::Error),
+        #[error("could not sign pre-hashed message")]
+        Sign(#[source] GatherSignatureDataError),
+        #[error("too many keys")]
+        TooManyKeys,
+    }
 }
 
 /// Copy a `.tar.gz` file and sign its content
@@ -50,28 +44,27 @@ where
     O: ?Sized + Read + Seek + Write,
 {
     if keys.len() > SignatureCountLeInt::MAX as usize {
-        return Err(SignTarError::TooManyKeys);
+        return Err(Error::TooManyKeys.into());
     }
     let signature_bytes = SIGNATURE_LENGTH * keys.len() + HEADER_SIZE;
     if (signature_bytes.saturating_add(2) / 3).saturating_mul(4) > BUF_LIMIT {
-        return Err(SignTarError::TooManyKeys);
+        return Err(Error::TooManyKeys.into());
     }
 
     // gather signature
-    let prehashed_message = prehash(input).map_err(SignTarError::InputRead)?;
-    let buf =
-        gather_signature_data(keys, &prehashed_message, context).map_err(SignTarError::Sign)?;
+    let prehashed_message = prehash(input).map_err(Error::InputRead)?;
+    let buf = gather_signature_data(keys, &prehashed_message, context).map_err(Error::Sign)?;
     let buf = BASE64_STANDARD.encode(buf);
     if buf.len() > BUF_LIMIT {
-        return Err(SignTarError::TooManyKeys);
+        return Err(Error::TooManyKeys.into());
     }
 
     // copy input
-    input.rewind().map_err(SignTarError::InputSeek)?;
-    let _: u64 = copy(input, output).map_err(SignTarError::Copy)?;
+    input.rewind().map_err(Error::InputSeek)?;
+    let _: u64 = copy(input, output).map_err(Error::Copy)?;
 
     // write signature
-    let start = output.stream_position().map_err(SignTarError::OutputSeek)?;
+    let start = output.stream_position().map_err(Error::OutputSeek)?;
     let mut start_buf = [0u8; 16];
     write!(&mut start_buf[..], "{start:016x}").unwrap();
 
@@ -80,7 +73,7 @@ where
     tail.extend(buf.into_bytes()); // GZIP comment
     tail.extend(start_buf); // GZIP comment
     tail.extend(GZIP_END);
-    output.write_all(&tail).map_err(SignTarError::OutputWrite)?;
+    output.write_all(&tail).map_err(Error::OutputWrite)?;
 
     Ok(())
 }
