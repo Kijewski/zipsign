@@ -10,9 +10,6 @@ pub(crate) const HEADER_SIZE: usize = 16;
 /// Integer type to tell the number of signatures in a signed file, stored in little endian
 pub(crate) type SignatureCountLeInt = u16;
 
-#[cfg(any(feature = "sign-tar", feature = "verify-tar"))]
-pub(crate) const EPOCH: u32 = 978_307_200;
-
 /// Prefix of the signature block in a signed .tar.gz file
 ///
 /// Followed by base64 encoded signatures string, the current stream position before this block
@@ -20,6 +17,8 @@ pub(crate) const EPOCH: u32 = 978_307_200;
 /// [`GZIP_END`]
 #[cfg(any(feature = "sign-tar", feature = "verify-tar"))]
 pub(crate) const GZIP_START: &[u8; 10] = {
+    const EPOCH: u32 = 978_307_200; // 2001-01-01 00:00:00 Z
+
     let [m1, m2, m3, m4] = EPOCH.to_le_bytes();
     &[
         0x1f, 0x8b, // gzip: magic number
