@@ -10,7 +10,7 @@ use super::{gather_signature_data, GatherSignatureDataError};
 use crate::constants::{
     SignatureCountLeInt, BUF_LIMIT, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE,
 };
-use crate::{prehash, SigningKey};
+use crate::{Prehash, SigningKey};
 
 crate::Error! {
     /// An error returned by [`copy_and_sign_tar()`]
@@ -52,7 +52,7 @@ where
     }
 
     // gather signature
-    let prehashed_message = prehash(input).map_err(Error::InputRead)?;
+    let prehashed_message = Prehash::calculate(input).map_err(Error::InputRead)?;
     let buf = gather_signature_data(keys, &prehashed_message, context).map_err(Error::Sign)?;
     let buf = BASE64_STANDARD.encode(buf);
     if buf.len() > BUF_LIMIT {

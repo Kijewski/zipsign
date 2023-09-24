@@ -12,7 +12,9 @@ pub use self::tar::{verify_tar, VerifyTarError};
 #[cfg(feature = "verify-zip")]
 pub use self::zip::{verify_zip, VerifyZipError};
 use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
-use crate::{Sha512, Signature, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
+use crate::{
+    Prehash, Signature, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
+};
 
 crate::Error! {
     /// An error returned by [`collect_keys()`]
@@ -55,13 +57,13 @@ pub struct NoMatch;
 pub fn find_match(
     keys: &[VerifyingKey],
     signatures: &[Signature],
-    prehashed_message: &Sha512,
+    prehashed_message: &Prehash,
     context: Option<&[u8]>,
 ) -> Result<(usize, usize), NoMatch> {
     for (key_idx, key) in keys.iter().enumerate() {
         for (sig_idx, signature) in signatures.iter().enumerate() {
             let is_ok = key
-                .verify_prehashed_strict(prehashed_message.clone(), context, signature)
+                .verify_prehashed_strict(prehashed_message.0.clone(), context, signature)
                 .is_ok();
             if is_ok {
                 return Ok((key_idx, sig_idx));

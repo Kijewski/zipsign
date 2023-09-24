@@ -7,7 +7,7 @@ use zipsign_api::verify::{
     collect_keys, find_match, read_signatures, verify_tar, verify_zip, CollectKeysError, NoMatch,
     ReadSignaturesError, VerifyTarError, VerifyZipError,
 };
-use zipsign_api::{prehash, PUBLIC_KEY_LENGTH};
+use zipsign_api::{Prehash, PUBLIC_KEY_LENGTH};
 
 use crate::{get_context, ImplicitContextError};
 
@@ -121,7 +121,7 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
         ArchiveKind::Separate { signature } => {
             let signatures =
                 read_signatures(&mut File::open(signature).map_err(Error::SignaturesOpen)?)?;
-            let prehashed_message = prehash(&mut input).map_err(Error::InputRead)?;
+            let prehashed_message = Prehash::calculate(&mut input).map_err(Error::InputRead)?;
             let (key_idx, _) = find_match(&keys, &signatures, &prehashed_message, Some(context))
                 .map_err(Error::NoMatch)?;
             key_idx

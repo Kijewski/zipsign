@@ -12,7 +12,7 @@ pub use self::tar::{copy_and_sign_tar, SignTarError};
 #[cfg(feature = "sign-zip")]
 pub use self::zip::{copy_and_sign_zip, SignZipError};
 use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
-use crate::{Sha512, SignatureError, SigningKey, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
+use crate::{Prehash, SignatureError, SigningKey, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 
 crate::Error! {
     /// An error returned by [`read_signing_keys()`]
@@ -71,7 +71,7 @@ crate::Error! {
 /// a header
 pub fn gather_signature_data(
     keys: &[SigningKey],
-    prehashed_message: &Sha512,
+    prehashed_message: &Prehash,
     context: Option<&[u8]>,
 ) -> Result<Vec<u8>, GatherSignatureDataError> {
     if keys.is_empty() {
@@ -92,7 +92,7 @@ pub fn gather_signature_data(
     buf.extend(header);
     for (idx, key) in keys.iter().enumerate() {
         let signature = key
-            .sign_prehashed(prehashed_message.clone(), context)
+            .sign_prehashed(prehashed_message.0.clone(), context)
             .map_err(|err| SignaturesError::Signature(err, idx))?;
         buf.extend(signature.to_bytes());
     }

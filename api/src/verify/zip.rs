@@ -3,7 +3,7 @@
 use std::io::{Read, Seek};
 
 use super::{find_match, read_signatures, NoMatch, ReadSignaturesError, VerifyingKey};
-use crate::{prehash, Sha512, Signature};
+use crate::{Prehash, Signature};
 
 crate::Error! {
     /// An error retuned by [`verify_zip()`]
@@ -33,11 +33,11 @@ where
     Ok(key_idx)
 }
 
-fn read_zip<R>(signed_file: &mut R) -> Result<(Sha512, Vec<Signature>), VerifyZipError>
+fn read_zip<R>(signed_file: &mut R) -> Result<(Prehash, Vec<Signature>), VerifyZipError>
 where
     R: ?Sized + Read + Seek,
 {
     let signatures = read_signatures(signed_file).map_err(Error::ReadSignaturesError)?;
-    let prehashed_message = prehash(signed_file).map_err(Error::InputRead)?;
+    let prehashed_message = Prehash::calculate(signed_file).map_err(Error::InputRead)?;
     Ok((prehashed_message, signatures))
 }

@@ -7,7 +7,7 @@ use zip::{ZipArchive, ZipWriter};
 
 use super::{gather_signature_data, GatherSignatureDataError};
 use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE};
-use crate::{prehash, SigningKey, SIGNATURE_LENGTH};
+use crate::{Prehash, SigningKey, SIGNATURE_LENGTH};
 
 crate::Error! {
     /// An error returned by [`copy_and_sign_zip()`]
@@ -62,7 +62,7 @@ where
     let _ = output
         .seek(SeekFrom::Start(signature_bytes.try_into().unwrap()))
         .map_err(Error::OutputSeek)?;
-    let prehashed_message = prehash(output).map_err(Error::OutputRead)?;
+    let prehashed_message = Prehash::calculate(output).map_err(Error::OutputRead)?;
     let buf = gather_signature_data(keys, &prehashed_message, context).map_err(Error::Sign)?;
 
     // write signature

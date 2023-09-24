@@ -10,7 +10,7 @@ use super::{find_match, NoMatch};
 use crate::constants::{
     SignatureCountLeInt, BUF_LIMIT, GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER,
 };
-use crate::{prehash, Sha512, Signature, SignatureError, VerifyingKey, SIGNATURE_LENGTH};
+use crate::{Prehash, Signature, SignatureError, VerifyingKey, SIGNATURE_LENGTH};
 
 crate::Error! {
     /// An error returned by [`verify_tar()`]
@@ -56,7 +56,7 @@ where
 
 fn read_tar<I: ?Sized + Read + Seek>(
     input: &mut I,
-) -> Result<(Sha512, Vec<Signature>), VerifyTarError> {
+) -> Result<(Prehash, Vec<Signature>), VerifyTarError> {
     // seek to start of base64 encoded signatures
     let (data_start, data_len) = find_data_start_and_len(input)?;
 
@@ -65,7 +65,7 @@ fn read_tar<I: ?Sized + Read + Seek>(
 
     // pre-hash file
     input.rewind().map_err(Error::Seek)?;
-    let prehashed_message = prehash(&mut input.take(data_start)).map_err(Error::Read)?;
+    let prehashed_message = Prehash::calculate(&mut input.take(data_start)).map_err(Error::Read)?;
 
     Ok((prehashed_message, signatures))
 }

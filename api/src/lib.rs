@@ -25,22 +25,54 @@ mod constants;
 pub mod sign;
 pub mod verify;
 
-use std::io::{copy, Read};
+use std::fmt;
+use std::io::{self, Read};
 
 #[doc(no_inline)]
 pub use ed25519_dalek::{
-    Digest, Sha512, Signature, SignatureError, SigningKey, VerifyingKey, KEYPAIR_LENGTH,
-    PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
+    Signature, SignatureError, SigningKey, VerifyingKey, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH,
+    SIGNATURE_LENGTH,
 };
 
-/// Calculate the hash of an input file
-pub fn prehash<I>(input: &mut I) -> std::io::Result<Sha512>
-where
-    I: ?Sized + Read,
-{
-    let mut prehashed_message = Sha512::new();
-    let _: u64 = copy(input, &mut prehashed_message)?;
-    Ok(prehashed_message)
+/// The unsigned hash of an input file
+///
+/// Use [`io::Write`] to update the prehash.
+#[derive(Clone, Default)]
+pub struct Prehash(ed25519_dalek::Sha512);
+
+impl fmt::Debug for Prehash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Prehash").finish_non_exhaustive()
+    }
+}
+
+impl Prehash {
+    /// Instanciate a new prehash
+    pub fn new() -> Self {
+        Self(ed25519_dalek::Sha512::default())
+    }
+
+    /// Combination of [`Prehash::new()`] and [`io::Write`]
+    pub fn calculate<I>(input: &mut I) -> io::Result<Self>
+    where
+        I: ?Sized + Read,
+    {
+        let mut this = Self::new();
+        let _: u64 = io::copy(input, &mut this.0)?;
+        Ok(this)
+    }
+}
+
+impl io::Write for Prehash {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write(buf)
+    }
+
+    #[inline]
+    fn flush(&mut self) -> io::Result<()> {
+        self.0.flush()
+    }
 }
 
 /// A collection of all errors this library can return
@@ -77,7 +109,7 @@ pub enum ZipsignError {
     VerifyZip(#[from] self::verify::VerifyZipError),
 
     /// An I/O occurred
-    Io(#[from] std::io::Error),
+    Io(#[from] io::Error),
 }
 
 macro_rules! Error {

@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
 use normalize_path::NormalizePath;
-use zipsign_api::prehash;
 use zipsign_api::sign::{
     copy_and_sign_tar, copy_and_sign_zip, gather_signature_data, read_signing_keys,
     GatherSignatureDataError, ReadSigningKeysError, SignTarError, SignZipError,
 };
+use zipsign_api::Prehash;
 
 use crate::{get_context, ImplicitContextError};
 
@@ -114,7 +114,7 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let mut input = File::open(&args.input).map_err(Error::InputOpen)?;
     match kind {
         ArchiveKind::Separate => {
-            let prehashed_message = prehash(&mut input).map_err(Error::InputRead)?;
+            let prehashed_message = Prehash::calculate(&mut input).map_err(Error::InputRead)?;
             let data = gather_signature_data(&keys, &prehashed_message, Some(context))?;
             output_file.write_all(&data).map_err(Error::OutputWrite)?;
         },
