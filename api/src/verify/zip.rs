@@ -10,7 +10,7 @@ crate::Error! {
     pub struct VerifyZipError(Error) {
         #[error("could not read input")]
         InputRead(#[source] std::io::Error),
-        #[error(transparent)]
+        #[error("no matching key/signature pair found")]
         NoMatch(NoMatch),
         #[error("could not read signatures from input")]
         ReadSignaturesError(#[source] ReadSignaturesError),

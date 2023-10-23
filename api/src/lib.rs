@@ -47,7 +47,7 @@ impl fmt::Debug for Prehash {
 }
 
 impl Prehash {
-    /// Instanciate a new prehash
+    /// Instantiate a new prehash
     pub fn new() -> Self {
         Self(ed25519_dalek::Sha512::default())
     }

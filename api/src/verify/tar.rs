@@ -25,7 +25,7 @@ crate::Error! {
         LengthMismatch,
         #[error("the expected magic header was missing or corrupted")]
         MagicHeader,
-        #[error(transparent)]
+        #[error("no matching key/signature pair found")]
         NoMatch(NoMatch),
         #[error("could not read input")]
         Read(#[source] std::io::Error),
