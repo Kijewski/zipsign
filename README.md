@@ -9,6 +9,12 @@ A tool to sign and verify `.zip` and `.tar.gz` files with an ed25519 signing key
 ### Install
 
 ```text
+cargo install zipsign
+```
+
+or
+
+```text
 cargo install --git https://github.com/Kijewski/zipsign
 ```
 
@@ -120,4 +126,4 @@ This works, because multiple GZIP files can be freely concatenated.
 
 For .zip files the signature gets prepended to the input document.
 This works because ZIP files can be prepended with any data as long as all relative addresses are fixed up afterwards.
-This feature is used e.g. self-extracting ZIP files.
+This feature is used e.g. in self-extracting ZIP files.
