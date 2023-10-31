@@ -89,7 +89,7 @@ Options:
 
 * `-o`, `--output <OUTPUT>`:   Signed file to generate (if omitted, the input is overwritten)
 * `-c`, `--context <CONTEXT>`: Arbitrary string used to salt the input, defaults to file name of `<INPUT>`
-* `-f`, `--force`: Overwrite output file if it exists
+* `-f`, `--force`:             Overwrite output file if it exists
 
 Arguments:
 
@@ -114,6 +114,24 @@ Arguments:
 
 * `<INPUT>`:   Signed `.zip` or `.tar.gz` file
 * `<KEYS>...`: One or more files containing verifying keys
+
+### Remove signatures
+
+Usage: `zipsign unsign [zip|tar] [-o <OUTPUT>] <INPUT>`
+
+Subcommands:
+
+* `zip`: Removed signatures from `.zip` file
+* `tar`: Removed signatures from `.tar.gz` file
+
+Arguments:
+
+* `<INPUT>`:   Signed `.zip` or `.tar.gz` file
+
+Options:
+
+* `-o`, `--output <OUTPUT>`: Unsigned file to generate (if omitted, the input is overwritten)
+* `-f`, `--force`:           Overwrite output file if it exists
 
 ### How does it work?
 

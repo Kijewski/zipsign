@@ -10,7 +10,7 @@
 #![warn(missing_docs)]
 #![warn(non_ascii_idents)]
 #![warn(noop_method_call)]
-#![warn(rust_2018_idioms)]
+#![warn(rust_2021_idioms)]
 #![warn(single_use_lifetimes)]
 #![warn(trivial_casts)]
 #![warn(unreachable_pub)]
@@ -22,6 +22,7 @@
 
 mod generate;
 mod sign;
+mod unsign;
 mod verify;
 
 use std::path::Path;
@@ -42,6 +43,7 @@ enum CliSubcommand {
     GenKey(generate::Cli),
     Verify(verify::Cli),
     Sign(sign::Cli),
+    Unsign(unsign::Cli),
 }
 
 #[derive(pretty_error_debug::Debug, thiserror::Error)]
@@ -52,6 +54,8 @@ enum MainError {
     Verify(#[from] verify::Error),
     #[error("could not sign file")]
     Sign(#[from] sign::Error),
+    #[error("could not remove sign from file")]
+    Unsign(#[from] unsign::Error),
 }
 
 fn main() -> Result<(), MainError> {
@@ -60,6 +64,7 @@ fn main() -> Result<(), MainError> {
         CliSubcommand::GenKey(args) => generate::main(args)?,
         CliSubcommand::Verify(args) => verify::main(args)?,
         CliSubcommand::Sign(args) => sign::main(args)?,
+        CliSubcommand::Unsign(args) => unsign::main(args)?,
     }
     Ok(())
 }
