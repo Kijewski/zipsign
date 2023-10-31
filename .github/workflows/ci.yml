@@ -88,19 +88,6 @@ jobs:
 
       - run: cargo test --workspace --all-targets
 
-  package:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          key: package
-          toolchain: stable
-
-      - run: cargo package --package zipsign
-
   doc:
     runs-on: ubuntu-latest
     steps:
@@ -190,3 +177,42 @@ jobs:
           zipsign sign zip Cargo.lock.zip priv.key
           zipsign verify zip Cargo.lock.zip pub.key
           zipsign unsign zip Cargo.lock.zip
+
+  semver-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: semver-checks
+          toolchain: stable
+
+      - name: Install cargo-semver-checks
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-semver-checks
+
+      - run: cargo semver-checks -p zipsign-api --only-explicit-features
+      - run: cargo semver-checks -p zipsign-api --default-features
+      - run: cargo semver-checks -p zipsign-api --all-features
+
+  public-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          key: public-api
+          toolchain: nightly
+
+      - name: Install cargo-public-api
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-public-api
+
+      - run: cargo public-api -p zipsign-api
+      - run: cargo public-api -p zipsign-api diff
