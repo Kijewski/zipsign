@@ -110,9 +110,10 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
         .suffix(".tmp")
         .tempdir_in(output_dir)
         .map_err(Error::Tempfile)?;
-    let mut output_file = tempfile::Builder::new()
+    let mut temp_file = tempfile::Builder::new()
         .tempfile_in(&tempdir)
         .map_err(Error::Tempfile)?;
+    let output_file = temp_file.as_file_mut();
 
     let mut input = File::open(&args.input).map_err(Error::InputOpen)?;
     match kind {
@@ -121,16 +122,14 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
             let data = gather_signature_data(&keys, &prehashed_message, Some(context))?;
             output_file.write_all(&data).map_err(Error::OutputWrite)?;
         },
-        ArchiveKind::Zip => {
-            copy_and_sign_zip(&mut input, &mut output_file, &keys, Some(context))?;
-        },
+        ArchiveKind::Zip => copy_and_sign_zip(&mut input, output_file, &keys, Some(context))?,
         ArchiveKind::Tar => {
-            copy_and_sign_tar(&mut input, &mut output_file, &keys, Some(context))?;
+            copy_and_sign_tar(&mut input, output_file, &keys, Some(context))?;
         },
     }
     // drop input so it can be overwritten if input=output
     drop(input);
 
-    rename(output_file.into_temp_path(), output_path).map_err(Error::OutputRename)?;
+    rename(temp_file.into_temp_path(), output_path).map_err(Error::OutputRename)?;
     Ok(())
 }
