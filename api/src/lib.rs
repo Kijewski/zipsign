@@ -10,7 +10,7 @@
 #![warn(missing_docs)]
 #![warn(non_ascii_idents)]
 #![warn(noop_method_call)]
-#![warn(rust_2018_idioms)]
+#![warn(rust_2021_idioms)]
 #![warn(single_use_lifetimes)]
 #![warn(trivial_casts)]
 #![warn(unreachable_pub)]
@@ -23,7 +23,12 @@
 
 mod constants;
 pub mod sign;
+#[cfg(any(feature = "sign-zip", feature = "unsign-zip"))]
+mod sign_unsign_zip;
+pub mod unsign;
 pub mod verify;
+#[cfg(any(feature = "verify-tar", feature = "unsign-tar"))]
+mod verify_unsign_tar;
 
 use std::fmt;
 use std::io::{self, Read};
@@ -108,6 +113,15 @@ pub enum ZipsignError {
     #[cfg_attr(docsrs, doc(cfg(feature = "verify-zip")))]
     VerifyZip(#[from] self::verify::VerifyZipError),
 
+    /// An error returned by [`copy_and_unsign_tar()`][self::unsign::copy_and_unsign_tar]
+    #[cfg(feature = "unsign-tar")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "unsign-tar")))]
+    UnsignTar(#[from] self::unsign::UnsignTarError),
+    /// An error returned by [`copy_and_unsign_zip()`][self::unsign::copy_and_unsign_zip]
+    #[cfg(feature = "unsign-zip")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "unsign-zip")))]
+    UnsignZip(#[from] self::unsign::UnsignZipError),
+
     /// An I/O occurred
     Io(#[from] io::Error),
 }
@@ -124,7 +138,7 @@ macro_rules! Error {
         ),+ $(,)? }
     ) => {
         $(#[$meta])+
-        $vis struct $outer($inner);
+        $vis struct $outer(Box<$inner>);
 
         #[derive(Debug, thiserror::Error)]
         enum $inner { $(
@@ -138,21 +152,21 @@ macro_rules! Error {
             impl std::fmt::Debug for $outer {
                 #[inline]
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    std::fmt::Debug::fmt(&self.0, f)
+                    std::fmt::Debug::fmt(&*self.0, f)
                 }
             }
 
             impl std::fmt::Display for $outer {
                 #[inline]
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    std::fmt::Display::fmt(&self.0, f)
+                    std::fmt::Display::fmt(&*self.0, f)
                 }
             }
 
             impl From<$inner> for $outer {
                 #[inline]
                 fn from(value: $inner) -> Self {
-                    Self(value)
+                    Self(Box::new(value))
                 }
             }
 

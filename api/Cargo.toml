@@ -19,11 +19,14 @@ default = ["tar", "zip"]
 verify-tar = ["dep:base64"]
 verify-zip = []
 
+unsign-tar = ["dep:base64"]
+unsign-zip = ["dep:zip"]
+
 sign-tar = ["dep:base64"]
 sign-zip = ["dep:zip"]
 
-tar = ["sign-tar", "verify-tar"]
-zip = ["sign-zip", "verify-zip"]
+tar = ["sign-tar", "unsign-tar", "verify-tar"]
+zip = ["sign-zip", "unsign-zip", "verify-zip"]
 
 [package.metadata.docs.rs]
 all-features = true

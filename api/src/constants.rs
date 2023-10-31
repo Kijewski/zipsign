@@ -15,7 +15,7 @@ pub(crate) type SignatureCountLeInt = u16;
 /// Followed by base64 encoded signatures string, the current stream position before this block
 /// encoded as zero-padded 16 bytes hexadecimal string, and [`GZIP_END`]
 /// [`GZIP_END`]
-#[cfg(any(feature = "sign-tar", feature = "verify-tar"))]
+#[cfg(any(feature = "sign-tar", feature = "unsign-tar", feature = "verify-tar"))]
 pub(crate) const GZIP_START: &[u8; 10] = {
     const EPOCH: u32 = 978_307_200; // 2001-01-01 00:00:00 Z
 
@@ -31,7 +31,7 @@ pub(crate) const GZIP_START: &[u8; 10] = {
 };
 
 /// Suffix of the signature block in a signed .tar.gz file
-#[cfg(any(feature = "sign-tar", feature = "verify-tar"))]
+#[cfg(any(feature = "sign-tar", feature = "unsign-tar", feature = "verify-tar"))]
 pub(crate) const GZIP_END: &[u8; 14] = &[
     0x00, // deflate: NUL terminator, end of comments
     0x01, // deflate: block header (final block, uncompressed)

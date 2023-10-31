@@ -40,8 +40,8 @@ pub fn copy_and_sign_tar<I, O>(
     context: Option<&[u8]>,
 ) -> Result<(), SignTarError>
 where
-    I: ?Sized + Read + Seek,
-    O: ?Sized + Read + Seek + Write,
+    I: ?Sized + Seek + Read,
+    O: ?Sized + Seek + Write,
 {
     if keys.len() > SignatureCountLeInt::MAX as usize {
         return Err(Error::TooManyKeys.into());

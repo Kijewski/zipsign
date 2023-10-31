@@ -183,8 +183,10 @@ jobs:
           tar czf Cargo.lock.tgz Cargo.lock
           zipsign sign tar Cargo.lock.tgz priv.key
           zipsign verify tar Cargo.lock.tgz pub.key
+          zipsign unsign tar Cargo.lock.tgz
 
           # Windows doesn't have a "zip" command
           jar -cfM Cargo.lock.zip Cargo.lock
           zipsign sign zip Cargo.lock.zip priv.key
           zipsign verify zip Cargo.lock.zip pub.key
+          zipsign unsign zip Cargo.lock.zip

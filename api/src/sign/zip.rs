@@ -1,21 +1,17 @@
 #![cfg_attr(docsrs, doc(cfg(feature = "sign-zip")))]
 
-use std::io::{BufReader, BufWriter, IoSlice, Read, Seek, SeekFrom, Write};
-
-use zip::result::ZipError;
-use zip::{ZipArchive, ZipWriter};
+use std::io::{IoSlice, Read, Seek, SeekFrom, Write};
 
 use super::{gather_signature_data, GatherSignatureDataError};
 use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE};
+use crate::sign_unsign_zip::{copy_zip, CopyZipError};
 use crate::{Prehash, SigningKey, SIGNATURE_LENGTH};
 
 crate::Error! {
     /// An error returned by [`copy_and_sign_zip()`]
     pub struct SignZipError(Error) {
-        #[error("could not read input ZIP")]
-        InputZip(#[source] ZipError),
-        #[error("could not read file #{1} inside input ZIP")]
-        InputZipIndex(#[source] ZipError, usize),
+        #[error("could not copy ZIP data")]
+        Copy(#[source] CopyZipError),
         #[error("could not write to output, device full?")]
         OutputFull,
         #[error("could not read output")]
@@ -24,10 +20,6 @@ crate::Error! {
         OutputSeek(#[source] std::io::Error),
         #[error("could not write to output")]
         OutputWrite(#[source] std::io::Error),
-        #[error("could not write ZIP file #{1} to output")]
-        OutputZip(#[source] ZipError, usize),
-        #[error("could not finish writing output ZIP")]
-        OutputZipFinish(#[source] ZipError),
         #[error("could not gather signature data")]
         Sign(#[source] GatherSignatureDataError),
         #[error("too many keys")]
@@ -56,7 +48,7 @@ where
 
     // copy ZIP
     write_padding(signature_bytes, output)?;
-    copy_zip(input, output)?;
+    copy_zip(input, output).map_err(Error::Copy)?;
 
     // gather signature
     let _ = output
@@ -67,9 +59,8 @@ where
 
     // write signature
     output.rewind().map_err(Error::OutputSeek)?;
-    output
-        .write_all(&buf)
-        .map_err(|err| SignZipError(Error::OutputWrite(err)))
+    output.write_all(&buf).map_err(Error::OutputWrite)?;
+    Ok(())
 }
 
 fn write_padding<O>(mut padding_to_write: usize, output: &mut O) -> Result<(), Error>
@@ -93,31 +84,5 @@ where
         }
         padding_to_write -= written;
     }
-    Ok(())
-}
-
-fn copy_zip<I, O>(input: &mut I, output: &mut O) -> Result<(), Error>
-where
-    I: ?Sized + Read + Seek,
-    O: ?Sized + Write + Seek,
-{
-    let mut input = ZipArchive::new(BufReader::new(input)).map_err(Error::InputZip)?;
-    let mut output = ZipWriter::new(BufWriter::new(output));
-
-    output.set_raw_comment(input.comment().to_owned());
-    for idx in 0..input.len() {
-        let file = input
-            .by_index_raw(idx)
-            .map_err(|err| Error::InputZipIndex(err, idx))?;
-        output
-            .raw_copy_file(file)
-            .map_err(|err| Error::OutputZip(err, idx))?;
-    }
-    output
-        .finish()
-        .map_err(Error::OutputZipFinish)?
-        .flush()
-        .map_err(Error::OutputWrite)?;
-
     Ok(())
 }
