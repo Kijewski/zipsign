@@ -13,7 +13,7 @@ members = [".", "api"]
 default-members = [".", "api"]
 
 [workspace.dependencies]
-base64 = "0.21"
+base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 ed25519-dalek = { version = "2", features = ["digest"] }
 normalize-path = "0.2"
