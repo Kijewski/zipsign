@@ -25,7 +25,7 @@ where
     let mut input = ZipArchive::new(BufReader::new(input)).map_err(CopyZipError::InputZip)?;
     let mut output = ZipWriter::new(BufWriter::new(output));
 
-    output.set_raw_comment(input.comment().to_owned());
+    output.set_raw_comment(input.comment().to_owned().into());
     for idx in 0..input.len() {
         let file = input
             .by_index_raw(idx)
