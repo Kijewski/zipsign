@@ -84,6 +84,7 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
         .map_err(|err| Error::Write(err, args.verifying_key))
 }
 
+#[allow(dead_code)]
 trait NotUnixOpenOptionsExt {
     #[inline(always)]
     fn mode(&mut self, _mode: u32) -> &mut Self {
