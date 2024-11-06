@@ -20,7 +20,7 @@ normalize-path = "0.2"
 pretty-error-debug = "0.3"
 rand_core = { version = "0.6", features = ["getrandom"] }
 tempfile = "3"
-thiserror = "1"
+thiserror = "2"
 zip = { version = "2", default-features = false }
 
 [workspace.dependencies.zipsign-api]
