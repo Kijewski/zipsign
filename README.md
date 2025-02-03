@@ -2,8 +2,8 @@
 
 A tool to sign and verify `.zip` and `.tar.gz` files with an ed25519 signing key.
 
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Kijewski/zipsign/ci.yml?branch=main)](https://github.com/Kijewski/zipsign/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/zipsign?logo=rust)](https://crates.io/crates/zipsign)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Kijewski/zipsign/ci.yml?branch=main&style=flat-square&logoColor=white)](https://github.com/Kijewski/zipsign/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/zipsign?logo=rust&style=flat-square&logoColor=white)](https://crates.io/crates/zipsign)
 
 ### Install
 
