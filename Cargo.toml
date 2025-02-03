@@ -6,6 +6,21 @@ edition = "2021"
 authors = ["René Kijewski <crates.io@k6i.de>"]
 repository = "https://github.com/Kijewski/zipsign"
 license = "Apache-2.0 WITH LLVM-exception"
+rust-version = "1.81"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--generate-link-to-definition", "--cfg=docsrs"]
+
+[dependencies]
+clap.workspace = true
+ed25519-dalek = { workspace = true, features = ["rand_core"] }
+normalize-path.workspace = true
+pretty-error-debug.workspace = true
+rand_core.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+zipsign-api.workspace = true
 
 [workspace]
 resolver = "2"
@@ -28,17 +43,3 @@ version = "0.1.2"
 path = "api"
 default-features = false
 features = ["tar", "zip"]
-
-[dependencies]
-clap.workspace = true
-ed25519-dalek = { workspace = true, features = ["rand_core"] }
-normalize-path.workspace = true
-pretty-error-debug.workspace = true
-rand_core.workspace = true
-tempfile.workspace = true
-thiserror.workspace = true
-zipsign-api.workspace = true
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]

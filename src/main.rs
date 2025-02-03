@@ -1,4 +1,4 @@
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![forbid(unsafe_code)]
 #![allow(unknown_lints)]
 #![warn(absolute_paths_not_starting_with_crate)]

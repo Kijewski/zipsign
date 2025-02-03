@@ -1,4 +1,4 @@
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![forbid(unsafe_code)]
 #![allow(unknown_lints)]
 #![warn(absolute_paths_not_starting_with_crate)]
@@ -108,7 +108,7 @@ pub enum ZipsignError {
     #[cfg(feature = "verify-tar")]
     #[cfg_attr(docsrs, doc(cfg(feature = "verify-tar")))]
     VerifyTar(#[from] self::verify::VerifyTarError),
-    /// An error retuned by [`verify_zip()`][self::verify::verify_zip]
+    /// An error returned by [`verify_zip()`][self::verify::verify_zip]
     #[cfg(feature = "verify-zip")]
     #[cfg_attr(docsrs, doc(cfg(feature = "verify-zip")))]
     VerifyZip(#[from] self::verify::VerifyZipError),

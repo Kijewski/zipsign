@@ -6,6 +6,11 @@ edition = "2021"
 authors = ["René Kijewski <crates.io@k6i.de>"]
 repository = "https://github.com/Kijewski/zipsign"
 license = "Apache-2.0 WITH LLVM-exception"
+rust-version = "1.73"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--generate-link-to-definition", "--cfg=docsrs"]
 
 [dependencies]
 base64 = { workspace = true, optional = true }
@@ -27,7 +32,3 @@ sign-zip = ["dep:zip"]
 
 tar = ["sign-tar", "unsign-tar", "verify-tar"]
 zip = ["sign-zip", "unsign-zip", "verify-zip"]
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
