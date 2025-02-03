@@ -42,18 +42,19 @@ jobs:
       matrix:
         toolchain:
           - "1.81"
-        package:
-          - "zipsign"
+        folder:
+          - "cli"
         include:
           - toolchain: "1.73"
-            package: zipsign-api
+            folder: api
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
-      - run: cargo check --package ${{ matrix.package }} --all-targets
+      - run: cargo check --all-targets
+        working-directory: ${{ matrix.folder }}
 
   test:
     strategy:
@@ -149,7 +150,7 @@ jobs:
 
       - name: Execute example
         run: |
-          cargo install --path .
+          cargo install --path cli
           zipsign gen-key priv.key pub.key
 
           tar czf Cargo.lock.tgz Cargo.lock
