@@ -70,7 +70,7 @@ where
     while padding_to_write > 0 {
         const PADDING: &[u8; 512] = &[0; 512];
         let result = if padding_to_write > PADDING.len() {
-            let num_slices = ((padding_to_write + PADDING.len() - 1) / PADDING.len()).min(128);
+            let num_slices = padding_to_write.div_ceil(PADDING.len()).min(128);
             let mut slices = vec![IoSlice::new(PADDING); num_slices];
             slices[num_slices - 1] = IoSlice::new(&PADDING[..padding_to_write % PADDING.len()]);
             output.write_vectored(&slices)
