@@ -1,10 +1,10 @@
 #![cfg_attr(docsrs, doc(cfg(feature = "unsign-tar")))]
 
-use std::io::{copy, Read, Seek, Write};
+use std::io::{Read, Seek, Write, copy};
 
 use crate::verify_unsign_tar::{
-    tar_find_data_start_and_len, tar_read_signatures, TarFindDataStartAndLenError,
-    TarReadSignaturesError,
+    TarFindDataStartAndLenError, TarReadSignaturesError, tar_find_data_start_and_len,
+    tar_read_signatures,
 };
 
 crate::Error! {

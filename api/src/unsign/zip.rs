@@ -2,7 +2,7 @@
 
 use std::io::{Read, Seek, Write};
 
-use crate::sign_unsign_zip::{copy_zip, CopyZipError};
+use crate::sign_unsign_zip::{CopyZipError, copy_zip};
 
 crate::Error! {
     /// An error returned by [`copy_and_unsign_zip()`]

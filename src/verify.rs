@@ -4,12 +4,12 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use zipsign_api::verify::{
-    collect_keys, find_match, read_signatures, verify_tar, verify_zip, CollectKeysError, NoMatch,
-    ReadSignaturesError, VerifyTarError, VerifyZipError,
+    CollectKeysError, NoMatch, ReadSignaturesError, VerifyTarError, VerifyZipError, collect_keys,
+    find_match, read_signatures, verify_tar, verify_zip,
 };
-use zipsign_api::{Prehash, PUBLIC_KEY_LENGTH};
+use zipsign_api::{PUBLIC_KEY_LENGTH, Prehash};
 
-use crate::{get_context, ImplicitContextError};
+use crate::{ImplicitContextError, get_context};
 
 /// Verify a signature
 #[derive(Debug, Parser, Clone)]

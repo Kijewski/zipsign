@@ -35,8 +35,8 @@ use std::io::{self, Read};
 
 #[doc(no_inline)]
 pub use ed25519_dalek::{
-    Signature, SignatureError, SigningKey, VerifyingKey, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH,
-    SIGNATURE_LENGTH,
+    KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH, Signature, SignatureError, SigningKey,
+    VerifyingKey,
 };
 
 /// The unsigned hash of an input file

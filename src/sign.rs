@@ -1,16 +1,16 @@
-use std::fs::{rename, File};
+use std::fs::{File, rename};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
 use normalize_path::NormalizePath;
-use zipsign_api::sign::{
-    copy_and_sign_tar, copy_and_sign_zip, gather_signature_data, read_signing_keys,
-    GatherSignatureDataError, ReadSigningKeysError, SignTarError, SignZipError,
-};
 use zipsign_api::Prehash;
+use zipsign_api::sign::{
+    GatherSignatureDataError, ReadSigningKeysError, SignTarError, SignZipError, copy_and_sign_tar,
+    copy_and_sign_zip, gather_signature_data, read_signing_keys,
+};
 
-use crate::{get_context, ImplicitContextError};
+use crate::{ImplicitContextError, get_context};
 
 /// Generate signature for a file
 #[derive(Debug, Parser, Clone)]

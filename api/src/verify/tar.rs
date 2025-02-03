@@ -2,10 +2,10 @@
 
 use std::io::{Read, Seek};
 
-use super::{find_match, NoMatch};
+use super::{NoMatch, find_match};
 use crate::verify_unsign_tar::{
-    tar_find_data_start_and_len, tar_read_signatures, TarFindDataStartAndLenError,
-    TarReadSignaturesError,
+    TarFindDataStartAndLenError, TarReadSignaturesError, tar_find_data_start_and_len,
+    tar_read_signatures,
 };
 use crate::{Prehash, VerifyingKey};
 
