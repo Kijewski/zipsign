@@ -10,53 +10,50 @@ on:
 
 jobs:
   fmt:
+    strategy:
+      matrix:
+        toolchain:
+          - nightly
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: fmt
-          toolchain: nightly
+          toolchain: ${{ matrix.toolchain }}
           components: rustfmt
-
       - run: cargo fmt --all -- --check
 
   clippy:
     strategy:
       matrix:
         toolchain:
-          - stable
+          - nightly
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: clippy
           toolchain: ${{ matrix.toolchain }}
           components: clippy
-
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
   check:
     strategy:
       matrix:
         toolchain:
-          - stable
+          - "1.81"
+        package:
+          - "zipsign"
+        include:
+          - toolchain: "1.73"
+            package: zipsign-api
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: check
           toolchain: ${{ matrix.toolchain }}
-
-      - run: cargo check --workspace --all-targets
+      - run: cargo check --package ${{ matrix.package }} --all-targets
 
   test:
     strategy:
@@ -66,20 +63,16 @@ jobs:
         os:
           - ubuntu-22.04
           - windows-2022
-          - macos-12
+          - macos-13
         versions:
           - ""
           - "-Zminimal-versions"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: test${{ matrix.versions }}
           toolchain: ${{ matrix.toolchain }}
-          components: clippy
 
       - name: Update lockfile
         run: cargo generate-lockfile ${{ matrix.versions }}
@@ -89,55 +82,41 @@ jobs:
       - run: cargo test --workspace --all-targets
 
   doc:
+    strategy:
+      matrix:
+        toolchain:
+          - nightly
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: doc
-          toolchain: nightly
-
-      - run: cargo +nightly doc --all-features --no-deps
+          toolchain: ${{ matrix.toolchain }}
+      - run: cargo doc --workspace --all-features --no-deps
         env:
-          RUSTDOCFLAGS: "--cfg docsrs -D warnings"
+          RUSTDOCFLAGS: -Z unstable-options --generate-link-to-definition --cfg=docsrs -D warnings
 
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          key: audit
-          toolchain: stable
-
-      - name: Install cargo-audit
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-audit
-
-      - name: Run audit
-        run: cargo audit --deny warnings
+      - uses: EmbarkStudios/cargo-deny-action@v2
 
   api-powerset:
+    strategy:
+      matrix:
+        toolchain:
+          - 1.73
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: api-powerset
-          toolchain: stable
-
+          toolchain: ${{ matrix.toolchain }}
       - name: Install cargo-hack
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-hack
-
       - name: Check powerset
         run: cargo hack check --feature-powerset --package zipsign-api
         env:
@@ -151,7 +130,7 @@ jobs:
         os:
           - ubuntu-22.04
           - windows-2022
-          - macos-12
+          - macos-13
         versions:
           - ""
           - "-Zminimal-versions"
@@ -159,10 +138,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: execute${{ matrix.versions }}
           toolchain: ${{ matrix.toolchain }}
 
       - name: Update lockfile
@@ -187,15 +164,17 @@ jobs:
           zipsign unsign zip Cargo.lock.zip
 
   semver-checks:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: semver-checks
-          toolchain: stable
+          toolchain: ${{ matrix.toolchain }}
 
       - name: Install cargo-semver-checks
         uses: taiki-e/install-action@v2
@@ -207,15 +186,17 @@ jobs:
       - run: cargo semver-checks -p zipsign-api --all-features
 
   public-api:
+    strategy:
+      matrix:
+        toolchain:
+          - nightly
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
+      - uses: dtolnay/rust-toolchain@master
         with:
-          key: public-api
-          toolchain: nightly
+          toolchain: ${{ matrix.toolchain }}
 
       - name: Install cargo-public-api
         uses: taiki-e/install-action@v2
@@ -223,4 +204,26 @@ jobs:
           tool: cargo-public-api
 
       - run: cargo public-api -p zipsign-api
+        working-directory: api
       - run: cargo public-api -p zipsign-api diff
+        working-directory: api
+
+  sort:
+    name: Check order in Cargo.toml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
+      - run: cargo install --git https://github.com/DevinR528/cargo-sort.git --rev 3701753667c5d47ae166d6e5cd7a11384e068ed0
+
+      - run: cargo sort --workspace --grouped --check --check-format
+
+  typos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@master

@@ -1,7 +1,7 @@
 // "\x0c\x04\x01" -- form feed, end of text, start of header
 // "ed25519ph" -- used algorithm
 // "\x00\x00" -- version number in network byte order
-/// Bytes preceeding signatures
+/// Bytes preceding signatures
 pub(crate) const MAGIC_HEADER: &[u8; 14] = b"\x0c\x04\x01ed25519ph\x00\x00";
 
 /// Total number of bytes in a [`MAGIC_HEADER`] + [`SignatureCountLeInt`]

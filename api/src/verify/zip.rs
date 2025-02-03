@@ -6,7 +6,7 @@ use super::{NoMatch, ReadSignaturesError, VerifyingKey, find_match, read_signatu
 use crate::{Prehash, Signature};
 
 crate::Error! {
-    /// An error retuned by [`verify_zip()`]
+    /// An error returned by [`verify_zip()`]
     pub struct VerifyZipError(Error) {
         #[error("could not read input")]
         InputRead(#[source] std::io::Error),
