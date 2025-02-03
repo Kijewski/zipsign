@@ -1,14 +1,14 @@
 #![cfg_attr(docsrs, doc(cfg(feature = "sign-tar")))]
 
-use std::io::{copy, Read, Seek, Write};
+use std::io::{Read, Seek, Write, copy};
 
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use ed25519_dalek::SIGNATURE_LENGTH;
 
-use super::{gather_signature_data, GatherSignatureDataError};
+use super::{GatherSignatureDataError, gather_signature_data};
 use crate::constants::{
-    SignatureCountLeInt, BUF_LIMIT, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE,
+    BUF_LIMIT, GZIP_END, GZIP_EXTRA, GZIP_START, HEADER_SIZE, SignatureCountLeInt,
 };
 use crate::{Prehash, SigningKey};
 

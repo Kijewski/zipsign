@@ -1,10 +1,10 @@
-use std::fs::{rename, File};
+use std::fs::{File, rename};
 use std::path::{Path, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
 use normalize_path::NormalizePath;
 use zipsign_api::unsign::{
-    copy_and_unsign_tar, copy_and_unsign_zip, UnsignTarError, UnsignZipError,
+    UnsignTarError, UnsignZipError, copy_and_unsign_tar, copy_and_unsign_zip,
 };
 
 /// Generate signature for a file

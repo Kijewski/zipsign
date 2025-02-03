@@ -8,12 +8,12 @@ mod zip;
 use std::io::Read;
 
 #[cfg(feature = "verify-tar")]
-pub use self::tar::{verify_tar, VerifyTarError};
+pub use self::tar::{VerifyTarError, verify_tar};
 #[cfg(feature = "verify-zip")]
-pub use self::zip::{verify_zip, VerifyZipError};
-use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
+pub use self::zip::{VerifyZipError, verify_zip};
+use crate::constants::{BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER, SignatureCountLeInt};
 use crate::{
-    Prehash, Signature, SignatureError, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
+    PUBLIC_KEY_LENGTH, Prehash, SIGNATURE_LENGTH, Signature, SignatureError, VerifyingKey,
 };
 
 crate::Error! {

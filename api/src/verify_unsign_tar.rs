@@ -1,12 +1,12 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
-use ed25519_dalek::{Signature, SignatureError, SIGNATURE_LENGTH};
+use base64::prelude::BASE64_STANDARD;
+use ed25519_dalek::{SIGNATURE_LENGTH, Signature, SignatureError};
 
 use crate::constants::{
-    SignatureCountLeInt, BUF_LIMIT, GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER,
+    BUF_LIMIT, GZIP_END, GZIP_START, HEADER_SIZE, MAGIC_HEADER, SignatureCountLeInt,
 };
 
 #[derive(Debug, thiserror::Error)]

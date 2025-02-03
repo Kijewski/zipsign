@@ -5,7 +5,7 @@ use std::os::unix::prelude::OpenOptionsExt;
 use std::path::PathBuf;
 
 use clap::Parser;
-use ed25519_dalek::{SigningKey, KEYPAIR_LENGTH};
+use ed25519_dalek::{KEYPAIR_LENGTH, SigningKey};
 use rand_core::OsRng;
 
 /// Generate a signing key

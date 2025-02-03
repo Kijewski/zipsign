@@ -2,7 +2,7 @@
 
 use std::io::{Read, Seek};
 
-use super::{find_match, read_signatures, NoMatch, ReadSignaturesError, VerifyingKey};
+use super::{NoMatch, ReadSignaturesError, VerifyingKey, find_match, read_signatures};
 use crate::{Prehash, Signature};
 
 crate::Error! {

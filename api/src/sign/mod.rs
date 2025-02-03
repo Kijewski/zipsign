@@ -8,11 +8,11 @@ mod zip;
 use std::io::Read;
 
 #[cfg(feature = "sign-tar")]
-pub use self::tar::{copy_and_sign_tar, SignTarError};
+pub use self::tar::{SignTarError, copy_and_sign_tar};
 #[cfg(feature = "sign-zip")]
-pub use self::zip::{copy_and_sign_zip, SignZipError};
-use crate::constants::{SignatureCountLeInt, BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER};
-use crate::{Prehash, SignatureError, SigningKey, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
+pub use self::zip::{SignZipError, copy_and_sign_zip};
+use crate::constants::{BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER, SignatureCountLeInt};
+use crate::{KEYPAIR_LENGTH, Prehash, SIGNATURE_LENGTH, SignatureError, SigningKey};
 
 crate::Error! {
     /// An error returned by [`read_signing_keys()`]

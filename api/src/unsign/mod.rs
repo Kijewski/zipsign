@@ -6,6 +6,6 @@ mod tar;
 mod zip;
 
 #[cfg(feature = "unsign-tar")]
-pub use self::tar::{copy_and_unsign_tar, UnsignTarError};
+pub use self::tar::{UnsignTarError, copy_and_unsign_tar};
 #[cfg(feature = "unsign-zip")]
-pub use self::zip::{copy_and_unsign_zip, UnsignZipError};
+pub use self::zip::{UnsignZipError, copy_and_unsign_zip};
