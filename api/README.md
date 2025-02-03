@@ -2,9 +2,9 @@
 
 Sign and verify `.zip` and `.tar.gz` files with an ed25519 signing key.
 
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Kijewski/zipsign/ci.yml?branch=main)](https://github.com/Kijewski/zipsign/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/zipsign-api?logo=rust)](https://crates.io/crates/zipsign-api)
-![License: License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-informational?logo=apache)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Kijewski/zipsign/ci.yml?branch=main&style=flat-square&logoColor=white)](https://github.com/Kijewski/zipsign/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/zipsign-api?logo=rust&style=flat-square&logoColor=white)](https://crates.io/crates/zipsign-api)
+[![docs.rs](https://img.shields.io/docsrs/zipsign-api?logo=docsdotrs&style=flat-square&logoColor=white "docs.rs")](https://docs.rs/zipsign-api/)
 
 This library contains the brains of [`zipsign`](https://github.com/Kijewski/zipsign).
 You can use it in your projects to verify and sign `.zip` and `.tar.gz` files
