@@ -11,10 +11,10 @@ normalize-path = "0.2.0"
 pretty-error-debug = "0.3.0"
 tempfile = "3.0.0"
 thiserror = "2.0.8"
-zip = { version = "2.0.0", default-features = false }
+zip = { version = "3.0.0", default-features = false }
 
 # Cannot be newer than `ed25519-dalek`'s dependency
-rand_core = { version = "0.6.0", features = ["getrandom"] }
+rand_core = { version = "0.9.3", features = ["getrandom"] }
 
 [workspace.dependencies.zipsign-api]
 version = "0.1.3"
