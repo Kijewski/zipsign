@@ -45,7 +45,7 @@ jobs:
         folder:
           - "cli"
         include:
-          - toolchain: "1.73"
+          - toolchain: "1.75"
             folder: api
     runs-on: ubuntu-latest
     steps:
@@ -62,9 +62,9 @@ jobs:
         toolchain:
           - stable
         os:
-          - ubuntu-22.04
-          - windows-2022
-          - macos-13
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
         versions:
           - ""
           - "-Zminimal-versions"
@@ -107,7 +107,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - 1.73
+          - 1.75
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -129,9 +129,9 @@ jobs:
         toolchain:
           - stable
         os:
-          - ubuntu-22.04
-          - windows-2022
-          - macos-13
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
         versions:
           - ""
           - "-Zminimal-versions"

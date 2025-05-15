@@ -5,8 +5,7 @@ use std::os::unix::prelude::OpenOptionsExt;
 use std::path::PathBuf;
 
 use clap::Parser;
-use ed25519_dalek::{KEYPAIR_LENGTH, SigningKey};
-use rand_core::OsRng;
+use ed25519_dalek::{KEYPAIR_LENGTH, SecretKey, SigningKey};
 
 /// Generate a signing key
 #[derive(Debug, Parser, Clone)]
@@ -35,6 +34,8 @@ pub(crate) enum Error {
     Read(#[source] std::io::Error, PathBuf),
     #[error("no valid key found in from {1:?}")]
     IllegalKey(#[source] ed25519_dalek::SignatureError, PathBuf),
+    #[error("could not get random data")]
+    Random(#[source] getrandom::Error),
 }
 
 pub(crate) fn main(args: Cli) -> Result<(), Error> {
@@ -53,7 +54,10 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
             Err(err) => return Err(Error::IllegalKey(err, args.private_key)),
         }
     } else {
-        let key: SigningKey = SigningKey::generate(&mut OsRng);
+        let mut secret = SecretKey::default();
+        getrandom::fill(secret.as_mut_slice()).map_err(Error::Random)?;
+        let key = SigningKey::from_bytes(&{ secret });
+
         let result = OpenOptions::new()
             .write(true)
             .create(true)
