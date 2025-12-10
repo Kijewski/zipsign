@@ -41,12 +41,12 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - "1.81"
+          - "1.85"
+          - "stable"
+          - "nightly"
         folder:
           - "cli"
-        include:
-          - toolchain: "1.75"
-            folder: api
+          - "api"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -107,7 +107,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - 1.75
+          - 1.85
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

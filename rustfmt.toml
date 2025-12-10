@@ -1,5 +1,5 @@
 combine_control_expr = false
-edition = "2021"
+edition = "2024"
 format_macro_matchers = true
 group_imports = "StdExternalCrate"
 imports_granularity = "Module"
