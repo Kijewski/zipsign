@@ -1,7 +1,7 @@
 [package]
 name = "zipsign"
 description = "Sign and verify `.zip` and `.tar.gz` files with an ed25519 signing key"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["René Kijewski <crates.io@k6i.de>"]
 repository = "https://github.com/Kijewski/zipsign"

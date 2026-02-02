@@ -7,12 +7,12 @@ default-members = ["api", "cli"]
 base64 = "0.22.0"
 clap = { version = "4.4.0", features = ["derive"] }
 ed25519-dalek = { version = "2.0.0", features = ["digest"] }
-getrandom = { version = "0.3.3", features = ["std"] }
+getrandom = { version = ">= 0.3.0, < 0.5.0", features = ["std"] }
 normalize-path = "0.2.0"
 pretty-error-debug = "0.3.0"
 tempfile = "3.0.0"
 thiserror = "2.0.8"
-zip = { version = ">= 2.0.0, < 7.0.0", default-features = false }
+zip = { version = ">= 2.0.0, < 8.0.0", default-features = false }
 
 [workspace.dependencies.zipsign-api]
 version = "0.2.0"
