@@ -105,7 +105,9 @@ where
     if signature_count == 0 {
         return Err(SignaturesError::Empty.into());
     }
-    let signature_bytes = signature_count * SIGNATURE_LENGTH;
+    let signature_bytes = signature_count
+        .checked_mul(SIGNATURE_LENGTH)
+        .ok_or(SignaturesError::MagicHeader)?;
     if signature_bytes > BUF_LIMIT {
         return Err(SignaturesError::MagicHeader.into());
     }

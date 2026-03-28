@@ -41,7 +41,11 @@ where
     if keys.len() > SignatureCountLeInt::MAX as usize {
         return Err(Error::TooManyKeys.into());
     }
-    let signature_bytes = SIGNATURE_LENGTH * keys.len() + HEADER_SIZE;
+    let signature_bytes = keys
+        .len()
+        .checked_mul(SIGNATURE_LENGTH)
+        .and_then(|s| s.checked_add(HEADER_SIZE))
+        .ok_or(Error::TooManyKeys)?;
     if signature_bytes > BUF_LIMIT {
         return Err(Error::TooManyKeys.into());
     }

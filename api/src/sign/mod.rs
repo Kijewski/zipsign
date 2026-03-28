@@ -78,7 +78,11 @@ pub fn gather_signature_data(
         return Err(SignaturesError::Empty.into());
     }
 
-    let signature_bytes = HEADER_SIZE + keys.len() * SIGNATURE_LENGTH;
+    let signature_bytes = keys
+        .len()
+        .checked_mul(SIGNATURE_LENGTH)
+        .and_then(|s| s.checked_add(HEADER_SIZE))
+        .ok_or(SignaturesError::TooManyKeys)?;
     if signature_bytes > BUF_LIMIT {
         return Err(SignaturesError::TooManyKeys.into());
     }
