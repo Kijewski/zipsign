@@ -22,6 +22,7 @@
 #![doc = include_str!("../README.md")]
 
 mod constants;
+pub mod keys;
 pub mod sign;
 #[cfg(any(feature = "sign-zip", feature = "unsign-zip"))]
 mod sign_unsign_zip;
@@ -102,6 +103,8 @@ pub enum ZipsignError {
     NoMatch(#[from] self::verify::NoMatch),
     /// An error returned by [`collect_keys()`][self::verify::collect_keys]
     CollectKeys(#[from] self::verify::CollectKeysError),
+    /// An error returned by [`read_verifying_keys()`][self::verify::read_verifying_keys]
+    ReadVerifyingKeys(#[from] self::verify::ReadVerifyingKeysError),
     /// An error returned by [`read_signatures()`][self::verify::read_signatures]
     ReadSignatures(#[from] self::verify::ReadSignaturesError),
     /// An error returned by [`verify_tar()`][self::verify::verify_tar]

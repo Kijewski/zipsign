@@ -1,13 +1,12 @@
 use std::fs::File;
-use std::io::Read;
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
+use zipsign_api::Prehash;
 use zipsign_api::verify::{
-    CollectKeysError, NoMatch, ReadSignaturesError, VerifyTarError, VerifyZipError, collect_keys,
-    find_match, read_signatures, verify_tar, verify_zip,
+    NoMatch, ReadSignaturesError, ReadVerifyingKeysError, VerifyTarError, VerifyZipError,
+    find_match, read_signatures, read_verifying_keys, verify_tar, verify_zip,
 };
-use zipsign_api::{PUBLIC_KEY_LENGTH, Prehash};
 
 use crate::{ImplicitContextError, get_context};
 
@@ -83,8 +82,8 @@ struct CommonArgs {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
-    #[error("could not collect keys")]
-    CollectKeys(#[from] CollectKeysError),
+    #[error("could not read verifying keys")]
+    ReadVerifyingKeys(#[from] ReadVerifyingKeysError),
     #[error("could not determine `context` string by the input name")]
     Context(#[from] ImplicitContextError),
     #[error("could not open input")]
@@ -108,12 +107,8 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
 
     let context = get_context(args.context.as_deref(), &input)?;
 
-    let keys = args.keys.into_iter().map(|path| {
-        let mut buf = [0; PUBLIC_KEY_LENGTH];
-        File::open(path)?.read_exact(&mut buf)?;
-        Ok(buf)
-    });
-    let keys = collect_keys(keys)?;
+    let keys = args.keys.into_iter().map(File::open);
+    let keys = read_verifying_keys(keys)?;
 
     let mut input = File::open(&input).map_err(Error::InputOpen)?;
 
