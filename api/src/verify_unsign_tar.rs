@@ -98,6 +98,12 @@ where
     if data[..GZIP_START.len()] != *GZIP_START {
         return Err(TarReadSignaturesError::Gzip);
     }
+    // `base64` already ensures that no `NUL` was contained in the input. A `NUL` would mean that
+    // the signature data was broken / contained inside another `DEFLATE` block. I don't think
+    // forging a `.tar.gz` file this way could be used for an attack, anyway, because an empty
+    // `DEFLATE` block cannot contain data. Being "empty" and "containing data" at the same time …
+    // But without any `NUL` check, `zipsign-api` could possibly say "this file is fine", when it's
+    // actually broken.
     let Ok(data) = BASE64_STANDARD.decode(&data[GZIP_START.len()..]) else {
         return Err(TarReadSignaturesError::Base64);
     };
