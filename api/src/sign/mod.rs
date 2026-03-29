@@ -12,36 +12,36 @@ pub use self::tar::{SignTarError, copy_and_sign_tar};
 #[cfg(feature = "sign-zip")]
 pub use self::zip::{SignZipError, copy_and_sign_zip};
 use crate::constants::{BUF_LIMIT, HEADER_SIZE, MAGIC_HEADER, SignatureCountLeInt};
-use crate::{KEYPAIR_LENGTH, Prehash, SIGNATURE_LENGTH, SignatureError, SigningKey};
+use crate::{Prehash, SIGNATURE_LENGTH, SignatureError, SigningKey};
 
 crate::Error! {
     /// An error returned by [`read_signing_keys()`]
     pub struct ReadSigningKeysError(KeysError) {
-        #[error("input #{1} did not contain a valid key")]
-        Construct(#[source] ed25519_dalek::ed25519::Error, usize),
         #[error("no signing keys provided")]
         Empty,
+        #[error("input #{1} did not contain a valid key")]
+        Parse(#[source] crate::keys::ParseKeyError, usize),
         #[error("could not read key in file #{1}")]
         Read(#[source] std::io::Error, usize),
     }
 }
 
-/// Read signing keys from an [`Iterator`] of [readable][Read] inputs
+/// Read signing keys from an [`Iterator`] of [readable][Read] inputs.
+/// Each input may contain either a raw 64-byte keypair or a PEM-encoded key.
 pub fn read_signing_keys<I, R>(inputs: I) -> Result<Vec<SigningKey>, ReadSigningKeysError>
 where
     I: IntoIterator<Item = std::io::Result<R>>,
     R: Read,
 {
-    // read signing keys
     let mut keys = inputs
         .into_iter()
         .enumerate()
         .map(|(key_index, input)| {
-            let mut key = [0; KEYPAIR_LENGTH];
-            input
-                .and_then(|mut input| input.read_exact(&mut key))
+            let mut buf = Vec::new();
+            let _: usize = input
+                .and_then(|mut input| input.read_to_end(&mut buf))
                 .map_err(|err| KeysError::Read(err, key_index))?;
-            SigningKey::from_keypair_bytes(&key).map_err(|err| KeysError::Construct(err, key_index))
+            crate::keys::parse_signing_key(&buf).map_err(|err| KeysError::Parse(err, key_index))
         })
         .collect::<Result<Vec<_>, _>>()?;
     if keys.is_empty() {

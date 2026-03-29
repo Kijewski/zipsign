@@ -17,6 +17,43 @@ use crate::{
 };
 
 crate::Error! {
+    /// An error returned by [`read_verifying_keys()`]
+    pub struct ReadVerifyingKeysError(VerifyKeysError) {
+        #[error("no verifying keys provided")]
+        Empty,
+        #[error("input #{1} did not contain a valid key")]
+        Parse(#[source] crate::keys::ParseKeyError, usize),
+        #[error("could not read key in file #{1}")]
+        Read(#[source] std::io::Error, usize),
+    }
+}
+
+/// Read verifying keys from an [`Iterator`] of [readable][Read] inputs.
+/// Each input may contain either a raw 32-byte key or a PEM-encoded key.
+pub fn read_verifying_keys<I, R>(inputs: I) -> Result<Vec<VerifyingKey>, ReadVerifyingKeysError>
+where
+    I: IntoIterator<Item = std::io::Result<R>>,
+    R: Read,
+{
+    let keys = inputs
+        .into_iter()
+        .enumerate()
+        .map(|(key_index, input)| {
+            let mut buf = Vec::new();
+            let _: usize = input
+                .and_then(|mut input| input.read_to_end(&mut buf))
+                .map_err(|err| VerifyKeysError::Read(err, key_index))?;
+            crate::keys::parse_verifying_key(&buf)
+                .map_err(|err| VerifyKeysError::Parse(err, key_index))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if keys.is_empty() {
+        return Err(VerifyKeysError::Empty.into());
+    }
+    Ok(keys)
+}
+
+crate::Error! {
     /// An error returned by [`collect_keys()`]
     pub struct CollectKeysError(KeysError) {
         #[error("the input was empty")]
