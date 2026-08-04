@@ -115,7 +115,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
       - name: Install cargo-hack
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.6
         with:
           tool: cargo-hack
       - name: Check powerset
@@ -178,7 +178,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install cargo-semver-checks
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.6
         with:
           tool: cargo-semver-checks
 
@@ -200,7 +200,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install cargo-public-api
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.6
         with:
           tool: cargo-public-api
 
