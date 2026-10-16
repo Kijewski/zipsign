@@ -9,6 +9,8 @@ pub(crate) enum CopyZipError {
     InputZip(#[source] ZipError),
     #[error("could not read file #{1} inside input ZIP")]
     InputZipIndex(#[source] ZipError, usize),
+    #[error("could not copy ZIP comment to output")]
+    OutputComment(#[source] ZipError),
     #[error("could not write to output")]
     OutputWrite(#[source] std::io::Error),
     #[error("could not write ZIP file #{1} to output")]
@@ -25,7 +27,9 @@ where
     let mut input = ZipArchive::new(BufReader::new(input)).map_err(CopyZipError::InputZip)?;
     let mut output = ZipWriter::new(BufWriter::new(output));
 
-    output.set_raw_comment(input.comment().into());
+    output
+        .set_raw_comment(input.comment().into())
+        .map_err(CopyZipError::OutputComment)?;
     for idx in 0..input.len() {
         let file = input
             .by_index_raw(idx)

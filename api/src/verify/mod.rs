@@ -118,7 +118,9 @@ where
         .map_err(SignaturesError::Read)?;
 
     let signatures = signatures
-        .chunks_exact(SIGNATURE_LENGTH)
+        .as_chunks::<SIGNATURE_LENGTH>()
+        .0
+        .iter()
         .enumerate()
         .map(|(idx, bytes)| {
             Signature::from_slice(bytes).map_err(|err| SignaturesError::Signature(err, idx))

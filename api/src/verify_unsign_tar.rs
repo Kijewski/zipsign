@@ -126,7 +126,9 @@ where
     }
 
     let signatures = data[HEADER_SIZE..]
-        .chunks_exact(SIGNATURE_LENGTH)
+        .as_chunks::<SIGNATURE_LENGTH>()
+        .0
+        .iter()
         .enumerate()
         .map(|(idx, bytes)| {
             Signature::from_slice(bytes).map_err(|err| TarReadSignaturesError::Signature(err, idx))
