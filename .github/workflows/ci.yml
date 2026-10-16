@@ -41,7 +41,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - "1.85"
+          - "1.88"
           - "stable"
           - "nightly"
         folder:
@@ -107,7 +107,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - 1.85
+          - 1.88
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -163,6 +163,18 @@ jobs:
           zipsign sign zip Cargo.lock.zip priv.key
           zipsign verify zip Cargo.lock.zip pub.key
           zipsign unsign zip Cargo.lock.zip
+
+      - name: Execute example with Info-ZIP archive
+        if: runner.os != 'Windows'
+        run: |
+          # Info-ZIP adds extra fields (e.g. 0x7875 Unix UID/GID) that `jar` does not
+          zip -q Cargo.lock.info.zip Cargo.lock
+          echo "archive comment" | zip -q -z Cargo.lock.info.zip
+          zipsign sign zip Cargo.lock.info.zip priv.key
+          zipsign verify zip Cargo.lock.info.zip pub.key
+          zipsign unsign zip Cargo.lock.info.zip
+          unzip -t Cargo.lock.info.zip
+          unzip -z Cargo.lock.info.zip | grep -q "archive comment"
 
   semver-checks:
     strategy:

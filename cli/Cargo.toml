@@ -6,7 +6,7 @@ edition = "2024"
 authors = ["René Kijewski <crates.io@k6i.de>"]
 repository = "https://github.com/Kijewski/zipsign"
 license = "MIT OR Apache-2.0 OR Apache-2.0 WITH LLVM-exception"
-rust-version = "1.85"
+rust-version = "1.88"
 
 [package.metadata.docs.rs]
 all-features = true
