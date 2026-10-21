@@ -15,6 +15,7 @@ rustdoc-args = ["--generate-link-to-definition", "--cfg=docsrs"]
 [dependencies]
 base64 = { workspace = true, optional = true }
 ed25519-dalek.workspace = true
+pem.workspace = true
 thiserror.workspace = true
 zip = { workspace = true, optional = true }
 
