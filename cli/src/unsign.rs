@@ -1,4 +1,5 @@
 use std::fs::{File, rename};
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
@@ -53,7 +54,7 @@ struct CommonArgs {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
-    #[error("output exists, use `--force` allow replacing a file")]
+    #[error("output exists, use `--force` to replace it")]
     Exists,
     #[error("could not open input file")]
     InputOpen(#[source] std::io::Error),
@@ -71,9 +72,6 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
     let (kind, args) = args.subcommand.split();
 
     let output_path = args.output.as_deref().unwrap_or(&args.input).normalize();
-    if args.output.is_some() && !args.force {
-        return Err(Error::Exists);
-    }
     let output_dir = output_path.parent().unwrap_or(Path::new("."));
     let tempdir = tempfile::Builder::new()
         .prefix(".zipsign.")
@@ -93,6 +91,17 @@ pub(crate) fn main(args: Cli) -> Result<(), Error> {
     // drop input so it can be overwritten if input=output
     drop(input);
 
-    rename(temp_file.into_temp_path(), output_path).map_err(Error::OutputRename)?;
+    let temp_path = temp_file.into_temp_path();
+    if args.output.is_some() && !args.force {
+        // Atomically fails if `output_path` exists, so a file created meanwhile is not replaced.
+        temp_path
+            .persist_noclobber(&output_path)
+            .map_err(|err| match err.error.kind() {
+                ErrorKind::AlreadyExists => Error::Exists,
+                _ => Error::OutputRename(err.error),
+            })?;
+    } else {
+        rename(temp_path, output_path).map_err(Error::OutputRename)?;
+    }
     Ok(())
 }
