@@ -4,18 +4,18 @@ members = ["api", "cli"]
 default-members = ["api", "cli"]
 
 [workspace.dependencies]
-base64 = "0.22.0"
+base64 = { version = "0.23.1", default-features = false, features = ["std"] }
 clap = { version = "4.4.0", features = ["derive"] }
-ed25519-dalek = { version = "2.0.0", features = ["digest"] }
-getrandom = { version = ">= 0.3.0, < 0.5.0", features = ["std"] }
+ed25519-dalek = { version = "3.0.0", features = ["digest"] }
+getrandom = { version = "0.4", features = ["std"] }
 normalize-path = "0.2.0"
 pretty-error-debug = "0.3.0"
 tempfile = "3.0.0"
 thiserror = "2.0.8"
-zip = { version = "9", default-features = false, features = ["unreserved"] }
+zip = { version = "9.1", default-features = false }
 
 [workspace.dependencies.zipsign-api]
-version = "0.2.0"
+version = "0.3.0"
 path = "api"
 default-features = false
 features = ["tar", "zip"]

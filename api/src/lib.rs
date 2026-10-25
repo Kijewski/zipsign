@@ -63,7 +63,7 @@ impl Prehash {
         I: ?Sized + Read,
     {
         let mut this = Self::new();
-        let _: u64 = io::copy(input, &mut this.0)?;
+        let _: u64 = io::copy(input, &mut this)?;
         Ok(this)
     }
 }
@@ -71,12 +71,13 @@ impl Prehash {
 impl io::Write for Prehash {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.write(buf)
+        ed25519_dalek::Digest::update(&mut self.0, buf);
+        Ok(buf.len())
     }
 
     #[inline]
     fn flush(&mut self) -> io::Result<()> {
-        self.0.flush()
+        Ok(())
     }
 }
 
