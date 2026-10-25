@@ -1,0 +1,57 @@
+name: Fuzz
+
+# Fuzzing is random, so a run can hit a pre-existing bug. Only run it when the parsers or their
+# dependencies change, weekly, and on demand, so unrelated PRs are never blocked by it.
+on:
+  push:
+    branches: ['main']
+    paths: &paths
+      - 'api/**'
+      - 'fuzz/**'
+      - 'Cargo.toml'
+      - '.github/workflows/fuzz.yml'
+  pull_request:
+    branches: ['main']
+    paths: *paths
+  schedule:
+    - cron: "17 8 * * 4"
+  workflow_dispatch:
+
+jobs:
+  fuzz:
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain:
+          - nightly
+        target:
+          - signatures
+          - tar
+          - zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Install cargo-fuzz
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+
+      # The prebuilt cargo-fuzz is a musl binary and would default to the musl target, which has no
+      # AddressSanitizer support, so build for the runner's host triple instead.
+      - run: |
+          mkdir -p corpus/${{ matrix.target }}
+          host="$(rustc -vV | sed -n 's/^host: //p')"
+          cargo fuzz run --target "$host" ${{ matrix.target }} corpus/${{ matrix.target }} seeds/${{ matrix.target }} -- -max_total_time=60
+        working-directory: fuzz
+
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}

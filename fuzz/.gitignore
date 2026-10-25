@@ -1,0 +1,5 @@
+# Fuzzer output; seeds/ holds the committed starting corpus.
+/target
+/corpus
+/artifacts
+/coverage

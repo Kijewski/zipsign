@@ -1,0 +1,48 @@
+# Fuzz targets for the parsers that read untrusted signed files.
+#
+#   cargo install cargo-fuzz
+#   cd fuzz
+#   cargo +nightly fuzz run zip corpus/zip seeds/zip -- -max_total_time=600
+#
+# Targets: `zip` (verify_zip + copy_and_unsign_zip), `tar` (verify_tar + copy_and_unsign_tar),
+# `signatures` (read_signatures). The seeds are signed with the fixed key in
+# `fuzz_targets/common.rs` and context "zipsign-fuzz". New inputs go to `corpus/`, crashes to
+# `artifacts/`; both are gitignored.
+
+[package]
+name = "zipsign-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[[bin]]
+name = "signatures"
+path = "fuzz_targets/signatures.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "tar"
+path = "fuzz_targets/tar.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "zip"
+path = "fuzz_targets/zip.rs"
+test = false
+doc = false
+bench = false
+
+[dependencies]
+libfuzzer-sys = "0.4"
+zipsign-api = { path = "../api" }
+
+# Not a member of the main workspace, so normal builds and CI don't need nightly or libFuzzer.
+[workspace]
+members = ["."]
